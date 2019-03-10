@@ -1,13 +1,78 @@
+import math
 import re
 import random
+import time
+import hashlib
 from json import loads
-
 from .models import *
 
 
 class Exam:
+    """
+    def __get_authguid(self) -> str:
+        t = [""] * 36
+        for e in range(36):
+            t[e] = "0123456789abcdef"[math.floor(16 * random.random())]
+        t[14] = "4"
+        if t[19].isdigit():
+            t[19] = "0123456789abcdef"[3 & int(t[19]) | 8]
+        else:
+            t[19] = "8"
+        t[8] = t[13] = t[18] = t[23] = "-"
+        return "".join(t)
+    """
+    def __get_auth_header(self) -> dict:
+        def md5_encode(msg: str) -> str:
+            m = hashlib.md5()
+            m.update(msg.encode(encoding="utf-8"))
+            return m.hexdigest
+        def get_authguid() -> str:
+            strChars = ["0", "1","2","3","4","5","6","7","8","9","a","b","c", "d","e","f"]
+            t = [""] * 36
+            for e in range(36):
+                t[e] = random.choice(strChars)
+            t[14] = "4"
+            if t[19].isdigit():
+                t[19] = "0123456789abcdef"[3 & int(t[19]) | 8]
+            else:
+                t[19] = "8"
+            t[8] = t[13] = t[18] = t[23] = "-"
+            return "".join(t)
+        auth_guid = __get_authguid()
+        auth_time_stamp = str(int(time.time() * 1000))
+        auth_token = md5_encode(auth_guid + auth_time_stamp + "iflytek!@#123student")
+        if self.__XToken:
+            return {
+                "authbizcode": "0001",
+                "authguid": auth_guid,
+                "authtimestamp": auth_time_stamp,
+                "authtoken": auth_token,
+                "XToken": self.XToken
+            }
+        r = self.__session.get("http://www.zhixue.com/addon/error/book/index", headers={
+            "authbizcode": "0001",
+            "authguid": auth_guid,
+            "authtimestamp": auth_time_stamp,
+            "authtoken": auth_token
+        })
+        if r.json()["errorCode"] != 0:
+            raise Exception(r.json()["errorInfo"])
+        auth_guid = __get_authguid()
+        auth_time_stamp = str(int(time.time() * 1000))
+        auth_token = md5_encode(auth_guid + auth_time_stamp + "iflytek!@#123student")
+        XToken = r.json()["result"]
+        self.XToken = XToken
+        return {
+            "authbizcode": "0001",
+            "authguid": auth_guid,
+            "authtimestamp": auth_time_stamp,
+            "authtoken": auth_token,
+            "XToken": XToken
+        }
+
     def __init__(self, __session):
         self.__session = __session
+        self.__XToken = ""
 
     def get_exam_id(self, exam_name: str = None) -> str:
         """
@@ -17,8 +82,6 @@ class Exam:
             name为空则返回最新考试id
         :return:
         """
-        if exam_name and "-" in exam_name:
-            return exam_name
         exams = self.get_exams()
         if exam_name is None:
             return exams[0].examId
@@ -28,20 +91,20 @@ class Exam:
         else:
             return ""
 
-    def get_exams(self):
+    def get_exams(self) -> list:
         """
         获取所有考试信息
         :return:
         """
         exams = []
 
-        def get_page_exam_names(page: str) -> bool:
+        def get_page_exam(page: str):
             r = self.__session.get(
                 "http://www.zhixue.com/zhixuebao/zhixuebao/main/getUserExamList/",
                 params={
                     "actualPosition": 0,
                     "pageIndex": page,
-                    "pageSize": 10,
+                    "pageSize": 10
                 }
             )
             json_data = r.json()
@@ -50,13 +113,10 @@ class Exam:
                     examId=exam["examId"],
                     examName=exam["examName"],
                 ))
-            return json_data["hasNextPage"]
+            if json_data["hasNextPage"]:
+                get_page_exam(json_data["pagination"]["pageIndex"])
 
-        i = 1
-        while True:
-            if not get_page_exam_names(i):
-                break
-            i += 1
+        get_page_exam("1")
         return exams
 
     def get_self_grade(self, data: str = None) -> list:
@@ -78,24 +138,24 @@ class Exam:
 
         u = len(data)
         for i in range(u):
-            grades.append(subjectDataModel(**{
-                "score": data[i]["score"],
-                "classRank": classDataModel(**{
-                    "avgScore": data[i]["classRank"]["avgScore"],
-                    "highScore": data[i]["classRank"]["highScore"],
-                    "lowScore": data[i]["classRank"]["lowScore"],
-                    "rank": data[i]["classRank"]["rank"]
-                }),
-                "gradeRank": gradeDataModel(**{
-                    "avgScore": data[i]["gradeRank"]["avgScore"],
-                    "highScore": data[i]["gradeRank"]["highScore"],
-                    "lowScore": data[i]["gradeRank"]["lowScore"],
-                }),
-                "subjectName": data[i]["subjectName"],
-                "standardScore": data[i]["standardScore"],
-                "examName": data[i]["examName"],
-                "examId": data[i]["examId"]
-            }))
+            grades.append(scoreDataModel(
+                score=data[i]["score"],
+                classRank=classDataModel(
+                    avgScore=data[i]["classRank"]["avgScore"],
+                    highScore=data[i]["classRank"]["highScore"],
+                    lowScore=data[i]["classRank"]["lowScore"],
+                    rank=data[i]["classRank"]["rank"]
+                ),
+                gradeRank=gradeDataModel(
+                    avgScore=data[i]["gradeRank"]["avgScore"],
+                    highScore=data[i]["gradeRank"]["highScore"],
+                    lowScore=data[i]["gradeRank"]["lowScore"],
+                ),
+                subjectName=data[i]["subjectName"],
+                standardScore=data[i]["standardScore"],
+                examName=data[i]["examName"],
+                examId=data[i]["examId"]
+            ))
         return grades
 
     """
@@ -115,29 +175,24 @@ class Exam:
         return r.json()[1]
     """
 
-    def __get_paper_id(self, exam_id: str, subject: str) -> str:
+    def __get_paper_id(self, exam_id: str, subject_name: str) -> str:
         """
         获得指定考试id和学科的paperid
         :param subject:学科
         :param exam_id:考试id
         :return:
          """
-        paperid = False
-        data = {
-            "examId": exam_id,
-            "isHomework": "false",
-            "random": random.random()
-        }
-        r = self.__session.get("http://www.zhixue.com/zhixuebao/zhixuebao/main/getUserExamDataList/", params=data)
-        json = r.json()
-        r.close()
-        for each in json["userExamDataList"]:
-            if each["subjectName"] == subject:
-                paperid = each["paperId"]
-                break
-        return paperid
+        r = self.__session.get("http://www.zhixue.com/zhixuebao/report/exam/getReportMain?examId=" + exam_id,
+                               headers=self.__get_auth_header())
+        json_data = r.json()
+        if json_data["errorCode"] != 0:
+            raise Exception(json_data["errorInfo"])
+        for paper in json_data["result"]["paperList"]:
+            if paper["subjectName"] == subject_name:
+                return paper["paperId"]
+        return ""
 
-    def get_original(self, subject: str, data: str = None) -> list:
+    def get_original(self, subject_name: str, data: str = None) -> list:
         """
         获得指定考试id或名称和学科的原卷地址
         :param subject:学科
@@ -145,13 +200,23 @@ class Exam:
         :return:
         """
         exam_id = self.get_exam_id(data)
-        paper_id = self.__get_paper_id(exam_id, subject)
+        paper_id = self.__get_paper_id(exam_id, subject_name)
         if not paper_id:
             return []
-        data = {
-            "paperId": paper_id,
-            "examId": exam_id
-        }
-        r = self.__session.get("http://www.zhixue.com/zhixuebao/checksheet/", params=data)
-        imageurls = loads(re.findall(r"sheetImages = (\[.+?\])", r.text)[0])
-        return imageurls
+        r = self.__session.get(
+            f"http://www.zhixue.com/zhixuebao/report/checksheet/?examId={exam_id}&paperId={paper_id}&",
+            headers=self.__get_auth_header())
+        json_data = r.json()
+        if json_data["errorCode"] != 0:
+            raise Exception(json_data["errorInfo"])
+        image_urls = []
+        for image_url in loads(json_data["result"]["sheetImages"]):
+            image_urls.append(image_url)
+        return image_urls
+    def debug(self):
+        r = self.__session.get(
+            "http://www.zhixue.com/zhixuebao/report/checksheet/marking/scanFile/2019/01/22/AfterCorrection_32a56a74-0e76-433b-89ec-06b60d575b0cA_79_589_942_262.jpg",
+            headers=self.__get_auth_header()
+        )
+        with open("1.jpg", "wb") as f:
+            f.write(r.content)

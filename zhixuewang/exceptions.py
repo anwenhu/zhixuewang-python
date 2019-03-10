@@ -2,6 +2,14 @@ class Error(Exception):
     pass
 
 
+class LoginError(Error):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
+
+
 class UserOrPassError(Error):
     def __init__(self, value=None):
         self.value = value or "用户名或密码错误!"
