@@ -8,19 +8,6 @@ from .models import *
 
 
 class Exam:
-    """
-    def __get_authguid(self) -> str:
-        t = [""] * 36
-        for e in range(36):
-            t[e] = "0123456789abcdef"[math.floor(16 * random.random())]
-        t[14] = "4"
-        if t[19].isdigit():
-            t[19] = "0123456789abcdef"[3 & int(t[19]) | 8]
-        else:
-            t[19] = "8"
-        t[8] = t[13] = t[18] = t[23] = "-"
-        return "".join(t)
-    """
     def __get_auth_header(self) -> dict:
         def md5_encode(msg: str) -> str:
             m = hashlib.md5()
@@ -114,12 +101,12 @@ class Exam:
                     examName=exam["examName"],
                 ))
             if json_data["hasNextPage"]:
-                get_page_exam(json_data["pagination"]["pageIndex"])
+                get_page_exam(int(page) + 1)
 
         get_page_exam("1")
         return exams
 
-    def get_self_grade(self, data: str = None) -> list:
+    def get_self_mark(self, data: str = None) -> list:
         """
         获取成绩
         :param data:
