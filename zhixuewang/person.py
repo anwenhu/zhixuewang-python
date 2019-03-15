@@ -1,5 +1,5 @@
 import time
-
+from .models.personModel import *
 
 class Person:
     def __init__(self, __session):
@@ -13,8 +13,8 @@ class Person:
         """
         classmates = self.get_classmates()
         for classmate in classmates:
-            if classmate["name"] == name:
-                return classmate["userId"]
+            if classmate.name == name:
+                return classmate.userId
         return ""
 
     def get_classmates(self) -> list:
@@ -23,11 +23,14 @@ class Person:
         :param self:
         :return:
         """
-        classmates = []
+        classmates = list()
         data = self.__session.get("http://www.zhixue.com/zhixuebao/zhixuebao/friendmanage/?d=%d" % int(time.time()))
         data = data.json()
         for each in data["studentList"]:
-            classmates.append({"userName": each["name"], "userId": each["id"]})
+            classmates.append(personDataModel(
+                userName=each["name"], 
+                userId=each["id"]
+            ))
         return classmates
 
     def get_friends(self) -> list:
@@ -36,10 +39,10 @@ class Person:
             "http://www.zhixue.com/zhixuebao/zhixuebao/friendmanage/?d=%d" % int(time.time())) \
             .json()
         for each in json_data["friendList"]:
-            friends.append({
-                "userName": each["friendName"],
-                "userId": each["friendId"]
-            })
+            friends.append(personDataModel(
+                userName=each["friendName"],
+                userId=each["friendId"]
+            ))
 
         return friends
 
