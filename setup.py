@@ -53,11 +53,10 @@ setup(
     author="anwenhu",
     author_email="anemailpocket@163.com",
 
-    packages=["zhixuewang"],
+    packages=["zhixuewang", "zhixuewang/models"],
     include_package_data=True,
     platforms="any",
     install_requires=["requests", 'PyExecJs'],
-
     cmdclass={
         "upload": UploadCommand,
         "buildInstall": BuildInstallCommand
