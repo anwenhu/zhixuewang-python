@@ -134,12 +134,15 @@ class Zhixuewang(Exam, Person):
         self.qq_number = json_data["im"]
         self.name = json_data["name"]
         self.school = schoolDataModel(
-	    schoolId=json_data["clazz"]["school"]["id"],
-	    schoolName=json_data["clazz"]["school"]["name"]
-	)
+	        schoolId=json_data["clazz"]["school"]["id"],
+	        schoolName=json_data["clazz"]["school"]["name"]
+	    )
         self.class_ = classDataModel(
-	    classId=json_data["clazz"]["id"],
-	    className=json_data["clazz"]["name"]
-	)
+	        classId=json_data["clazz"]["id"],
+	        className=json_data["clazz"]["name"]
+	    )
+        self.birthday = birthdayModel(
+            t=int(json_data["birthday"]) / 1000
+        )
         return True
 
