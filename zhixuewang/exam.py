@@ -5,7 +5,7 @@ import time
 import hashlib
 from json import loads
 from .models.examModel import *
-
+from .models.urlModel import *
 
 class Exam:
     def __get_auth_header(self) -> dict:
@@ -37,7 +37,7 @@ class Exam:
                 "authtoken": auth_token,
                 "XToken": self.XToken
             }
-        r = self.__session.get("http://www.zhixue.com/addon/error/book/index", headers={
+        r = self.__session.get(XTOKEN_URL, headers={
             "authbizcode": "0001",
             "authguid": auth_guid,
             "authtimestamp": auth_time_stamp,
@@ -70,14 +70,34 @@ class Exam:
             name为空则返回最新考试id
         :return:
         """
-        exams = self.get_exams()
         if exam_name is None:
-            return exams[0].examId
+            return self.get_latest_exam().examId
+        exams = self.get_exams()
         for exam in exams:
             if exam_name == exam.examName:
                 return exam.examId
         else:
             return ""
+    
+    def __get_page_exam_data(self, page):
+        r = self.__session.get(
+            GET_EXAM_URL,
+            params={
+                "actualPosition": 0,
+                "pageIndex": page,
+                "pageSize": 10
+            }
+        )
+        json_data = r.json()
+        return (json_data, True) if json_data["hasNextPage"] else (json_data, False)
+ 
+        
+    def get_latest_exam(self) -> examDataModel:
+        exam = self.__get_page_exam_data(1)[0]["examList"][0]
+        return examDataModel(
+            examId=exam["examId"],
+            examName=exam["examName"]
+        )
 
     def get_exams(self) -> list:
         """
@@ -85,29 +105,25 @@ class Exam:
         :return:
         """
         exams = list()
-
-        def get_page_exam(page):
-            r = self.__session.get(
-                "http://www.zhixue.com/zhixuebao/zhixuebao/main/getUserExamList/",
-                params={
-                    "actualPosition": 0,
-                    "pageIndex": page,
-                    "pageSize": 10
-                }
-            )
-            json_data = r.json()
+        i = 1
+        json_data, check = self.__get_page_exam_data(i)
+        for exam in json_data["examList"]:
+            exams.append(examDataModel(
+                examId=exam["examId"],
+                examName=exam["examName"],
+            ))
+        while check:
+            json_data, check = self.__get_page_exam_data(i)
             for exam in json_data["examList"]:
                 exams.append(examDataModel(
                     examId=exam["examId"],
                     examName=exam["examName"],
                 ))
-            if json_data["hasNextPage"]:
-                get_page_exam(page + 1)
-
-        get_page_exam(1)
+            i += 1
+            
         return exams
 
-    def get_self_mark(self, data: str = None) -> list:
+    def get_self_mark(self, data: examDataModel = None) -> list:
         """
         获取成绩
         :param data:
@@ -115,9 +131,9 @@ class Exam:
         :return:
         """
         mark = examMarkModel(list()) 
-        exam_id = self.get_exam_id(data)
+        exam_id = self.get_exam_id() if data == None else data.examId
         data = self.__session.get(
-            "http://www.zhixue.com/zhixuebao/zhixuebao/feesReport/getStuSingleReportDataForPK/",
+            GET_MARK_URL,
             params={
                 "examId": exam_id,
                 "random": random.random()
@@ -129,15 +145,15 @@ class Exam:
             mark.append(subjectMarkModel(
                 score=data[i]["score"],
                 classRank=classMarkModel(
-                    avgScore=data[i]["classRank"]["avgScore"],
-                    highScore=data[i]["classRank"]["highScore"],
-                    lowScore=data[i]["classRank"]["lowScore"],
-                    rank=data[i]["classRank"]["rank"]
+                    avgScore=float(data[i]["classRank"]["avgScore"]),
+                    highScore=float(data[i]["classRank"]["highScore"]),
+                    lowScore=float(data[i]["classRank"]["lowScore"]),
+                    rank=int(data[i]["classRank"]["rank"])
                 ),
                 gradeRank=gradeMarkModel(
-                    avgScore=data[i]["gradeRank"]["avgScore"],
-                    highScore=data[i]["gradeRank"]["highScore"],
-                    lowScore=data[i]["gradeRank"]["lowScore"],
+                    avgScore=float(data[i]["gradeRank"]["avgScore"]),
+                    highScore=float(data[i]["gradeRank"]["highScore"]),
+                    lowScore=float(data[i]["gradeRank"]["lowScore"]),
                 ),
                 subjectName=data[i]["subjectName"],
                 standardScore=data[i]["standardScore"],
@@ -170,7 +186,7 @@ class Exam:
         :param exam_id:考试id
         :return:
          """
-        r = self.__session.get("http://www.zhixue.com/zhixuebao/report/exam/getReportMain?examId=" + exam_id,
+        r = self.__session.get(GET_PAPERID_URL,params={"examId":exam_id},
                                headers=self.__get_auth_header())
         json_data = r.json()
         if json_data["errorCode"] != 0:
@@ -192,7 +208,12 @@ class Exam:
         if not paper_id:
             return list()
         r = self.__session.get(
-            f"http://www.zhixue.com/zhixuebao/report/checksheet/?examId={exam_id}&paperId={paper_id}&",
+            GET_ORIGINAL_URL,
+            params={
+                "examId": exam_id,
+                "paperId": paper_id,
+                "": ""
+            },
             headers=self.__get_auth_header())
         json_data = r.json()
         if json_data["errorCode"] != 0:
