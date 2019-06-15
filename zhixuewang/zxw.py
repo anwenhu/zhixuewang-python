@@ -130,6 +130,7 @@ class Zhixuewang(Exam, Person):
         json_data = r1.json()["student"]
         if not json_data.get("clazz", False):
             return False
+        self.userCode = json_data["code"]
         self.email = json_data["email"]
         self.gender = "男" if json_data["gender"] == "1" else "女"
         self.mobile = json_data["mobile"]
