@@ -35,7 +35,7 @@ class Exam:
                 "authguid": auth_guid,
                 "authtimestamp": auth_time_stamp,
                 "authtoken": auth_token,
-                "XToken": self.XToken
+                "XToken": self.__XToken
             }
         r = self.__session.get(XTOKEN_URL, headers={
             "authbizcode": "0001",
