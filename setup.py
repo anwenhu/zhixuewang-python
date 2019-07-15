@@ -3,7 +3,7 @@ from shutil import rmtree
 from setuptools import setup, Command
 import os
 
-version = "0.1.7"
+version = "0.1.8"
 
 path = sys.executable
 class UploadCommand(Command):

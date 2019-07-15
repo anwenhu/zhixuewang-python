@@ -140,7 +140,7 @@ class Zhixuewang(Exam, Person):
 	        schoolId=json_data["clazz"]["school"]["id"],
 	        schoolName=json_data["clazz"]["school"]["name"]
 	    )
-        self.class_ = classDataModel(
+        self.clazz = classDataModel(
 	        classId=json_data["clazz"]["id"],
 	        className=json_data["clazz"]["name"]
 	    )
