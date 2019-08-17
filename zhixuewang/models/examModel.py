@@ -1,6 +1,3 @@
-from collections import namedtuple
-
-
 class examMarkModel(list):
     def __init__(self, l: list):
         super().__init__(l)
@@ -18,17 +15,13 @@ class examMarkModel(list):
         return m
 
 
-class subjectMarkModel(namedtuple("subjectMarkModel", [
-    "score",
-    "classRank",
-    "gradeRank",
-    "subjectName",
-    "standardScore",
-    "examName",
-    "examId",
-])):
-    def __str__(self):
-        return f"{self.subjectName}:\n分数: {self.score}\n{str(self.classRank)}\n{str(self.gradeRank)}"
+class examModel:
+    def __init__(self, id: str, name: str):
+        self.id: str = id
+        self.name: str = name
+
+    def __repr__(self):
+        return f"examModel(id={self.id}, name={self.name})"
 
 
 class classMarkModel:
@@ -58,10 +51,22 @@ class gradeMarkModel:
         return f"年级平均分: {self.avgScore}\n年级最高分: {self.highScore}\n年级最低分: {self.lowScore}"
 
 
-class examDataModel:
-    def __init__(self, examId: str, examName: str):
-        self.examId: str = examId
-        self.examName: str = examName
+class subjectMarkModel:
+    def __init__(
+            self,
+            score: float,
+            classRank: classMarkModel,
+            gradeRank: gradeMarkModel,
+            subjectName: str,
+            standardScore: float,
+            exam: examModel
+    ):
+        self.score = score
+        self.classRank = classRank
+        self.gradeRank = gradeRank
+        self.subjectName = subjectName
+        self.standardScore = standardScore
+        self.exam = exam
 
-    def __repr__(self):
-        return f"examDataModel(examId={self.examId}, examName={self.examName})"
+    def __str__(self):
+        return f"{self.subjectName}:\n分数: {self.score}\n{str(self.classRank)}\n{str(self.gradeRank)}"

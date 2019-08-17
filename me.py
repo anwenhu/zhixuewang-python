@@ -2,10 +2,10 @@ from zhixuewang import Zhixuewang
 
 username = input("请输入用户名:")
 password = input("请输入密码：")
-zxw = Zhixuewang(username=username, password=password)
-for examData in zxw.get_exams():
-    print(examData.examId)
-    print(examData.examName)
+zxw = Zhixuewang(username, password)
+for exam in zxw.get_exams():
+    print(exam.id)
+    print(exam.name)
     # print(response.json())
 # # print("%s:" % grades.pop("examName"))
 # #
