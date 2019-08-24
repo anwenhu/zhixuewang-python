@@ -153,7 +153,7 @@ def get_self_mark(self, exam: examModel = None) -> list:
     return mark
 
 
-def get_mark_with_weight(self, f: 'def(subjectName: str, score: int) -> int', exam: examModel = None) -> float:
+def get_mark_with_weight(self, f: 'def(subject: subjectMarkModel) -> int', exam: examModel = None) -> float:
     """
     根据用户自定义函数返回成绩
     :param f: 自定义函数
@@ -163,7 +163,7 @@ def get_mark_with_weight(self, f: 'def(subjectName: str, score: int) -> int', ex
     mark = self.get_self_mark(exam)
     res_score = 0
     for subject in mark:
-        res_score += f(subject.subjectName, subject.score)
+        res_score += f(subject)
     return res_score
 
 
