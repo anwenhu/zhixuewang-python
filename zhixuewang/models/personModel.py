@@ -1,4 +1,6 @@
+from .basicModel import listModel
 import time
+from typing import List
 
 
 class schoolModel:
@@ -10,7 +12,10 @@ class schoolModel:
         return self.name
 
     def __repr__(self):
-        return self.name
+        return f"school(name={self.name}, id={self.id})"
+
+    def __eq__(self, school):
+        return self.id == school.id
 
 
 class classModel:
@@ -22,7 +27,10 @@ class classModel:
         return self.name
 
     def __repr__(self):
-        return self.name
+        return f"class(name={self.name}, id={self.id})"
+
+    def __eq__(self, clazz):
+        return self.id == clazz.id
 
 
 class birthdayModel:
@@ -52,6 +60,7 @@ class personModel:
                  email: str = "",
                  mobile: str = "",
                  clazz: classModel = classModel(),
+                 teaching_clazzs: List[classModel] = list(),
                  school: schoolModel = schoolModel()):
         self.avatar = avatar
         self.name = name
@@ -63,10 +72,22 @@ class personModel:
         self.email = email
         self.mobile = mobile
         self.clazz = clazz
+        self.teaching_clazzs = teaching_clazzs
         self.school = school
 
     def __str__(self):
         return self.name
 
     def __repr__(self):
-        return self.name
+        return f"person(name={self.name}, id={self.id}, code={self.code})"
+
+
+class personsModel(listModel):
+    def findByCode(self, code: str) -> personModel:
+        return self.find(lambda p: p.code == code)
+
+    def findByClazz(self, clazz: classModel) -> personModel:
+        return self.find(lambda p: p.clazz == clazz)
+
+    def findBySchool(self, school: schoolModel) -> personModel:
+        return self.find(lambda p: p.school == school)

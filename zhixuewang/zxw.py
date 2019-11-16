@@ -75,18 +75,18 @@ def get_user_id(user_name: str, password: str) -> str:
     return None
 
 
-def get_role(s: requests.session) -> str:
+def get_roles(s: requests.session, user_id: str) -> str:
     """
     获取用户角色
     :param s: session
     :return
         返回用户角色
     """
-    r = s.get("https://www.zhixue.com/apicourse/web/getCurrentUser")
+    r = s.post("https://www.zhixue.com/portalcenter/teacher/getRoles/?t=1570180709979", data={
+        "userId": user_id,
+    })
     data = r.json()
-    if data["errorCode"] != 0:
-        raise Exception(data["errorInfo"])
-    return data["result"]["currentUser"]["role"]
+    return [i["eName"] for i in data]
 
 
 def Zhixuewang(user_name: str = None, password: str = None, user_id: str = None) -> User:
@@ -100,20 +100,18 @@ def Zhixuewang(user_name: str = None, password: str = None, user_id: str = None)
     """
     if not (password and any([user_name, user_id])):
         raise ArgError("请检查参数.")
-    session = requests.Session()
     if user_name:
-        session = login_id(get_user_id(user_name, password), password)
-    else:
-        session = login_id(user_id, password)
-    role = get_role(session)
-    if role == "student":
-        user = Student(session)
-    elif role == "teacher":
-        user = Teacher(session)
-    elif role == "headmaster":
-        user = Headmaster(session)
-    elif role == "headteacher":
+        user_id = get_user_id(user_name, password)
+    session = login_id(user_id, password)
+    roles = get_roles(session, user_id)
+    if "headteacher" in roles:
         user = Headteacher(session)
+    elif "headmaster" in roles:
+        user = Headmaster(session)
+    elif "teacher" in roles:
+        user = Teacher(session)
+    elif "student" in roles:
+        user = Student(session)
     else:
         raise Exception("账号是未知用户")
     if not user._get_info():

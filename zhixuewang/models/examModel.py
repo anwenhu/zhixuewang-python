@@ -1,6 +1,24 @@
-class examMarkModel(list):
-    def __init__(self, l: list):
+
+from .basicModel import listModel
+
+
+class examModel:
+    def __init__(self, id: str, name: str):
+        self.id: str = id
+        self.name: str = name
+
+    def __repr__(self):
+        return f"examModel(id={self.id}, name={self.name})"
+
+    def __eq__(self, exam):
+        return self.id == exam.id
+
+
+class examMarkModel(listModel):
+    def __init__(self, l: list, exam: examModel):
         super().__init__(l)
+        self.id = exam.id
+        self.name = exam.name
 
     def __str__(self):
         m = ""
@@ -14,14 +32,8 @@ class examMarkModel(list):
             m += f"{str(i)}\n"
         return m
 
-
-class examModel:
-    def __init__(self, id: str, name: str):
-        self.id: str = id
-        self.name: str = name
-
-    def __repr__(self):
-        return f"examModel(id={self.id}, name={self.name})"
+    def __eq__(self, examMark):
+        return self.id == examMark.id
 
 
 class classMarkModel:
@@ -58,15 +70,13 @@ class subjectMarkModel:
             classRank: classMarkModel,
             gradeRank: gradeMarkModel,
             subjectName: str,
-            standardScore: float,
-            exam: examModel
+            standardScore: float
     ):
         self.score = score
         self.classRank = classRank
         self.gradeRank = gradeRank
         self.subjectName = subjectName
         self.standardScore = standardScore
-        self.exam = exam
 
     def __str__(self):
         return f"{self.subjectName}:\n分数: {self.score}\n{str(self.classRank)}\n{str(self.gradeRank)}"

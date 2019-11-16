@@ -75,10 +75,11 @@ Student.get_self_mark = exam.get_self_mark
 Student.get_mark_with_weight = exam.get_mark_with_weight
 Student.__get_paper_id = exam.__get_paper_id
 Student.get_original = exam.get_original
+Student.get_one_original_url = exam.get_one_original_url
 
-Student.get_user_id = person.get_user_id
 Student.get_classmates = person.get_classmates
 Student.get_friends = person.get_friends
 Student.invite_friend = person.invite_friend
 Student.remove_friend = person.remove_friend
 Student.get_clazzs = person.get_clazzs
+# Student.get_teachers = person.get_teachers

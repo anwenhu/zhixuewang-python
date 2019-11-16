@@ -26,3 +26,4 @@ DELETE_FRIEND_URL = f"{BASE_URL}/zhixuebao/zhixuebao/delFriend/"
 GET_CLAZZS_URL = GET_FRIEND_URL
 # GET_CLASSMATES_URL = f"{BASE_URL}/zhixuebao/zhixuebao/getClassStudent/"
 GET_CLASSMATES_URL = f"{BASE_URL}/container/contact/student/students"
+GET_TEACHERS_URL = f"{BASE_URL}/container/contact/student/teachers"

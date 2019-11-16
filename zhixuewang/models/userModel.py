@@ -9,7 +9,8 @@ class User(personModel):
         self.role = ""
     
     def change_password(self):
-        raise ImportError()
+        raise NotImplementedError()
 
     def _get_info(self):
-        raise ImportError()
+        raise NotImplementedError()
+    

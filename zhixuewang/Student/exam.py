@@ -8,7 +8,7 @@ from .models.urlModel import (
 from ..models.userModel import User
 
 
-def __get_auth_header(self, XToken: str = None) -> dict:
+def __get_auth_header(self, XToken: str = "") -> dict:
     def md5_encode(msg: str) -> str:
         m = hashlib.md5()
         m.update(msg.encode(encoding="utf-8"))
@@ -53,7 +53,7 @@ def __get_auth_header(self, XToken: str = None) -> dict:
     return self.__get_auth_header(XToken)
 
 
-def get_exam_id(self, exam_name: str = None) -> str:
+def get_exam_id(self, exam_name: str = "") -> str:
     """
     把考试名字转换为考试id
     :param exam_name:
@@ -61,13 +61,13 @@ def get_exam_id(self, exam_name: str = None) -> str:
         name为空则返回最新考试id
     :return:
     """
-    if exam_name is None:
-        return self.get_latest_exam().examId
+    if not exam_name:
+        return self.get_latest_exam().id
     exams = self.get_exams()
-    for exam in exams:
-        if exam_name == exam.examName:
-            return exam.examId
-    return ""
+    exam = exams.findByName(exam_name)
+    if exam:
+        return exam.id
+    return exam_name
 
 
 def __get_page_exam_data(self, page):
@@ -80,7 +80,10 @@ def __get_page_exam_data(self, page):
         }
     )
     json_data = r.json()
-    return (json_data["examList"], True) if json_data.pop("hasNextPage") else (json_data["examList"], False)
+    if json_data.pop("hasNextPage"):
+        return (json_data["examList"], True)
+    else:
+        return (json_data["examList"], False)
 
 
 def get_latest_exam(self) -> examModel:
@@ -100,7 +103,7 @@ def get_exams(self) -> list:
     获取所有考试信息
     :return:
     """
-    exams = list()
+    exams = listModel(list())
     i = 1
     check = True
     while check:
@@ -121,9 +124,9 @@ def get_self_mark(self, exam: examModel = None) -> list:
     :param exam: 为空取最新考试
     :return:
     """
-    mark = examMarkModel(list())
     if exam is None:
         exam = self.get_latest_exam()
+    mark = examMarkModel(list(), exam)
     data = self._session.get(
         GET_MARK_URL,
         params={
@@ -147,8 +150,7 @@ def get_self_mark(self, exam: examModel = None) -> list:
                 lowScore=float(data[i]["gradeRank"]["lowScore"]),
             ),
             subjectName=data[i]["subjectName"],
-            standardScore=data[i]["standardScore"],
-            exam=exam
+            standardScore=data[i]["standardScore"]
         ))
     return mark
 
@@ -165,24 +167,6 @@ def get_mark_with_weight(self, f: 'def(subject: subjectMarkModel) -> int', exam:
     for subject in mark:
         res_score += f(subject)
     return res_score
-
-
-"""
-def getGrade(self, examdata, name):
-    examId = self.id_name(examdata, "exam")
-    userId = self.getStudentId(name)
-    self._setUserPkcount(examId)
-    if not userId:
-        return "你输入的名字不存在"
-    json = {
-        "examId": examId,
-        "random": random.random(),
-        "pkId": userId
-    }
-    r = self.__session.get("http://www.zhixue.com/zhixuebao/zhixuebao/personal/studentPkData/", params=json,
-                            data=json, json=json)
-    return r.json()[1]
-"""
 
 
 def __get_paper_id(self, exam_id: str, subject_name: str) -> str:
@@ -230,3 +214,12 @@ def get_original(self, subject_name: str, exam: examModel = None) -> list:
     for image_url in loads(json_data["result"]["sheetImages"]):
         image_urls.append(image_url)
     return image_urls
+
+
+def get_one_original_url(self, subject_name: str, exam: examModel = None, user_id: str = ""):
+    if exam is None:
+        exam = self.get_latest_exam()
+    paper_id = self.__get_paper_id(exam.id, subject_name)
+    if not paper_id:
+        return ""
+    return f"https://www.zhixue.com/classreport/class/student/checksheet/?userId={user_id}&paperId={paper_id}"

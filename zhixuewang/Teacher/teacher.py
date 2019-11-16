@@ -1,3 +1,4 @@
+from . import exam
 from ..models.userModel import User
 from .models.urlModel import TEST_URL
 
@@ -24,11 +25,19 @@ class Teacher(User):
         return self
 
 
+Teacher.get_score = exam.get_score
+
 # 校长
+
+
 class Headmaster(Teacher):
     def __init__(self, session):
         super().__init__(session)
         self.role = "headmaster"
+
+
+Headmaster.get_topicSets = exam.get_topicSets
+Headmaster.get_class_score = exam.get_class_score
 
 
 # 年级主任 / 班主任
