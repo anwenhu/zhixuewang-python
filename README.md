@@ -38,7 +38,7 @@ print(urls)
 urls = zxw.get_original(学科, 考试名字)
 print(urls)
 ```
-> PS: 详细文档在[此]()
+其余函数的使用方法请自行查看源码说明.
 ## 问题和建议
 如果有什么问题或者建议都可以在这个[Issue](https://github.com/anwenhu/zhixuewang/issues)和我讨论
 当然也可以加入这个新建的QQ群讨论：862767072
