@@ -1,10 +1,17 @@
-# 智学网
+# zhixuewang-python
 
 ## 安装:
+
+### 使用 pip 安装(推荐)
 ```bash
 pip3 install zhixuewang
 ```
-或
+### 下载 源码 安装
+把项目源码下载后, 在项目根目录输入
+```bash
+python setup install
+```
+或直接
 ```bash
 git clone https://github.com/anwenhu/zhixuewang
 cd zhixuewang
@@ -12,7 +19,7 @@ python setup.py install
 ```
 
 
-## 使用
+## 快速使用
 ### 登录:
 ```python
 from zhixuewang import Zhixuewang
@@ -25,20 +32,10 @@ print(grades)
 ```
 ### 获取指定考试的考试成绩
 ```python
-grades = zxw.get_self_mark(考试名字)
+grades = zxw.get_self_mark(考试名字) # 形如 grades = zxw.get_self_mark("合肥13中九年级第一次月考") 
 print(grades)
 ```
-### 获取最新考试某一学科的原卷url(不含打分情况)
-```python
-urls = zxw.get_original(学科)
-print(urls)
-```
-### 获取指定考试某一学科的原卷url(不含打分情况)
-```python
-urls = zxw.get_original(学科, 考试名字)
-print(urls)
-```
-其余函数的使用方法请自行查看源码说明.
+具体的还可查看[Wiki](https://github.com/anwenhu/zhixuewang/wiki/Home/)(不过Wiki正在制作中，如果愿意帮忙维护的话，可以加我QQ: 1223009522 备注github wiki)
 ## 问题和建议
-如果有什么问题或者建议都可以在这个[Issue](https://github.com/anwenhu/zhixuewang/issues)和我讨论
+如果您在使用的过程中遇到任何问题，欢迎前往 [Issue](https://github.com/anwenhu/zhixuewang/issues)提问
 当然也可以加入这个新建的QQ群讨论：862767072
