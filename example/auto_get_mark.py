@@ -1,41 +1,18 @@
-from zhixuewang import Zhixuewang
+from zhixuewang import get_student, rewrite_str
 from zhixuewang.models.exceptionsModel import UserOrPassError
+import zhixuewang
 import time
 import requests
 
 
-def get_msg(mark):
-    msg = f"{mark.name}:{mark.id}"
-    for subject in mark:
+@rewrite_str(zhixuewang.models.examModel.Mark)
+def f(self):
+    msg = f"{self.exam.name}:{self.exam.id}"
+    for subject in self:
         msg += "".join([
             "  \n",
-            "# ",
-            subject.subjectName,
-            "  \n",
-            "分数: ",
-            str(subject.score),
-            "  \n",
-            "班级平均分: ",
-            str(subject.classRank.avgScore),
-            "  \n",
-            "班级最高分: ",
-            str(subject.classRank.highScore),
-            "  \n",
-            "班级最低分: ",
-            str(subject.classRank.lowScore),
-            "  \n",
-            "班级排名: ",
-            str(subject.classRank.rank),
-            "  \n"
-            "年级平均分: ",
-            str(subject.gradeRank.avgScore),
-            "  \n",
-            "年级最高分: ",
-            str(subject.gradeRank.highScore),
-            "  \n",
-            "年级最低分: ",
-            str(subject.gradeRank.lowScore),
-            "  \n",
+            f"# {subject.subject.name}  \n",
+            f"分数: {subject.score}  \n",
         ])
     return msg
 
@@ -43,7 +20,7 @@ def get_msg(mark):
 def send_mark(mark):
     r = requests.get(f"https://sc.ftqq.com/{desp}.send", params={
         "text":  "智学网出成绩了！",
-        "desp":  get_msg(mark)
+        "desp":  str(mark)
     })
     if not r.ok:
         time.sleep(5)
@@ -55,9 +32,7 @@ if __name__ == "__main__":
         username = f.readline().strip()
         password = f.readline().strip()
         desp = f.readline().strip()
-    zxw = Zhixuewang(username, password)
-    # lastMark = zxw.get_self_mark()
-    from zhixuewang.models.examModel import examMarkModel, subjectMarkModel, examModel
+    zxw = get_student(username, password)
     exam = zxw.get_latest_exam()
     while True:
         new_exam = zxw.get_latest_exam()

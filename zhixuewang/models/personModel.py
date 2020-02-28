@@ -1,93 +1,89 @@
-from .basicModel import listModel
-import time
+from zhixuewang.models.basicModel import ExtendedList
 from typing import List
+from enum import Enum
 
-
-class schoolModel:
-    def __init__(self, id: str = "", name: str = ""):
-        self.id = id
+class Phase:
+    def __init__(self, name: str, code: str):
         self.name = name
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return f"school(name={self.name}, id={self.id})"
-
-    def __eq__(self, school):
-        return self.id == school.id
-
-
-class classModel:
-    def __init__(self, id: str = "", name: str = ""):
-        self.id = id
-        self.name = name
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return f"class(name={self.name}, id={self.id})"
-
-    def __eq__(self, clazz):
-        return self.id == clazz.id
-
-
-class birthdayModel:
-    def __init__(self, t: int):
-        self.t = t
-        self.d = time.strftime("%Y-%m-%d %H-%M-%S", time.localtime(t))
-
-    def get_timestamp(self):
-        return self.t
-
-    def __str__(self):
-        return self.d
-
-    def __repr__(self):
-        return self.d
-
-
-class personModel:
-    def __init__(self,
-                 name: str = "",
-                 id: str = "",
-                 code: str = "",
-                 birthday: int = 0,
-                 qq_number: str = "",
-                 avatar: str = "",
-                 gender: str = "",
-                 email: str = "",
-                 mobile: str = "",
-                 clazz: classModel = classModel(),
-                 teaching_clazzs: List[classModel] = list(),
-                 school: schoolModel = schoolModel()):
-        self.avatar = avatar
-        self.name = name
-        self.id = id
         self.code = code
+
+    def __repr__(self):
+        return f"Phase(name={self.name}, code={self.code})"
+    
+    def __str__(self):
+        return self.__repr__()
+    
+class Grade:
+    def __init__(self, name: str, code: str, phase: Phase):
+        self.name = name
+        self.code = code
+        self.phase = phase
+    
+    def __repr__(self):
+        return f"Grade(name={self.name}, code={self.code}, phase={self.phase})"
+    
+    def __str__(self):
+        return self.__repr__()
+
+class School:
+    def __init__(self, id: str, name: str):
+        self.id = id
+        self.name = name
+
+    def __eq__(self, other):
+        return type(other) == type(self) and self.id == other.id
+    
+    def __repr__(self):
+        return f"School(id={self.id}, name={self.name})"
+    
+    def __str__(self):
+        return self.__repr__()
+
+class Sex(Enum):
+    GIRL = "女"
+    BOY = "男"
+
+class Person:
+    def __init__(self,
+                name: str = "", 
+                id: str = "", 
+                gender: Sex = Sex.GIRL, 
+                email: str = "", 
+                mobile: str = "",
+                qq_number: str = "", 
+                birthday: int = 0, 
+                avatar: str = ""):
+        self.name = name
+        self.id = id
         self.gender = gender
-        self.birthday = birthdayModel(birthday)
-        self.qq_number = qq_number
+
         self.email = email
         self.mobile = mobile
-        self.clazz = clazz
-        self.teaching_clazzs = teaching_clazzs
-        self.school = school
-
-    def __str__(self):
-        return self.name
-
+        self.qq_number = qq_number
+        
+        self.birthday = birthday
+        
+        self.avatar = avatar
+    
     def __repr__(self):
-        return f"person(name={self.name}, id={self.id}, code={self.code})"
+        return f"Person(id={self.id}, name={self.name}, gender={self.gender})"
+    
+    def __str__(self):
+        return self.__repr__()
+    
+class StuClass:
+    def __init__(self, id: str, name: str, grade: Grade, school: School):
+        self.id = id
+        self.name = name
+        self.grade = grade
+        self.school = school
+    
+    def __eq__(self, other):
+        return type(other) == type(self) and self.id == other.id
+    
+    def __repr__(self):
+        return f"StuClass(id={self.id}, name={self.name}, grade={self.grade}, school={self.school})"
+    
+    def __str__(self):
+        return self.__repr__()
 
-
-class personsModel(listModel):
-    def findByCode(self, code: str) -> personModel:
-        return self.find(lambda p: p.code == code)
-
-    def findByClazz(self, clazz: classModel) -> personModel:
-        return self.find(lambda p: p.clazz == clazz)
-
-    def findBySchool(self, school: schoolModel) -> personModel:
-        return self.find(lambda p: p.school == school)

@@ -14,8 +14,9 @@ TEST_URL = f"{BASE_URL}/container/container/teacher/teacherAccountNew"
 # Exam
 XTOKEN_URL = f"{BASE_URL}/addon/error/book/index"
 GET_EXAM_URL = f"{BASE_URL}/zhixuebao/zhixuebao/main/getUserExamList/"
-GET_MARK_URL = f"{BASE_URL}/zhixuebao/zhixuebao/feesReport/getStuSingleReportDataForPK/"
-GET_PAPERID_URL = f"{BASE_URL}/zhixuebao/report/exam/getReportMain"
+# GET_MARK_URL = f"{BASE_URL}/zhixuebao/zhixuebao/feesReport/getStuSingleReportDataForPK/"
+GET_SUBJECT_URL = f"{BASE_URL}/zhixuebao/report/exam/getReportMain"
+GET_MARK_URL = GET_SUBJECT_URL
 GET_ORIGINAL_URL = f"{BASE_URL}/zhixuebao/report/checksheet/"
 
 

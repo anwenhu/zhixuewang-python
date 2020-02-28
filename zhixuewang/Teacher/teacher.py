@@ -1,11 +1,11 @@
-from . import exam
-from ..models.userModel import User
-from .models.urlModel import TEST_URL
+from zhixuewang.Teacher.exam import ExtraExam
+from zhixuewang.Teacher.models.urlModel import TEST_URL
+from zhixuewang.Teacher.models.personModel import TeaPerson
 
-
-class Teacher(User):
+class Teacher(TeaPerson, ExtraExam):
     def __init__(self, session):
-        super().__init__(session)
+        super(TeaPerson, self).__init__()
+        self._session = session
         self.role = "teacher"
 
     def _get_info(self):
@@ -13,19 +13,14 @@ class Teacher(User):
             "referer": "https://www.zhixue.com/container/container/teacher/index/"
         })
         json_data = r.json()["teacher"]
-        print(json_data)
         self.email = json_data.get("email")
         self.gender = "男" if json_data["gender"] == "1" else "女"
         self.id = json_data.get("id")
         self.mobile = json_data.get("mobile")
         self.name = json_data.get("name")
-        self.school.id = json_data.get("school")["id"]
-        self.school.name = json_data.get("school")["name"]
-        print(json_data)
         return self
 
 
-Teacher.get_score = exam.get_score
 
 # 校长
 
@@ -36,8 +31,6 @@ class Headmaster(Teacher):
         self.role = "headmaster"
 
 
-Headmaster.get_topicSets = exam.get_topicSets
-Headmaster.get_class_score = exam.get_class_score
 
 
 # 年级主任 / 班主任

@@ -1,105 +1,158 @@
-from ..models.personModel import personModel, classModel, schoolModel, personsModel
-from ..models.basicModel import listModel
-from .models.urlModel import (GET_FRIEND_URL, GET_CLASSMATES_URL,
+from zhixuewang.models.personModel import StuClass, School, Sex
+from zhixuewang.Student.models.personModel import StuPerson, StuPersonList
+from zhixuewang.models.basicModel import ExtendedList
+from zhixuewang.Student.models.urlModel import (GET_FRIEND_URL, GET_CLASSMATES_URL,
                               INVITE_FRIEND_URL, DELETE_FRIEND_URL, GET_CLAZZS_URL, GET_TEACHERS_URL)
 import time
+from enum import IntEnum
+from typing import List
+
+class FriendMsg(IntEnum):
+    SUCCESS = 200          # 邀请成功
+    ALREADY = 201          # 已发送过邀请，等待对方答复
+    UNDEFINED = 202        # 未知错误
+
+class ExtraPerson:
+    def get_clazzs(self) -> List[StuClass]:
+        """
+        获取当前年级所有班级
+        :return:
+        """
+        clazzs = ExtendedList()
+        r = self._session.get(GET_CLAZZS_URL, params={
+            "d": int(time.time())
+        })
+        json_data = r.json()
+        for clazz in json_data["clazzs"]:
+            clazzs.append(StuClass(
+                name=clazz["name"],
+                id=clazz["id"],
+                grade=self.clazz.grade,
+                school=self.clazz.school
+            ))
+        return clazzs
+    
+    def get_clazz(self, clazz_data: StuClass or str = None):
+        """
+        获取当前年级班级
+        :param clazz_data:
+            可以为班级id或班级名称
+            为StuClass实例时直接返回
+            为空时返回自己班级
+        :return:
+        """
+        if not clazz_data:
+            return self.clazz
+        if type(clazz_data) == StuClass:
+            return clazz_data
+        clazzs = self.get_clazzs()
+        if clazz_data.isdigit(): # 判断为id还是名称
+            clazz = clazzs.find_by_id(clazz_data)   # 为id
+        else:
+            clazz = clazzs.find_by_name(clazz_data)  # 为名称
+        return clazz
+
+    def __get_classmates(self, clazz_id: str) -> List[StuPerson]:
+        classmates = StuPersonList()
+        r = self._session.get(GET_CLASSMATES_URL, params={
+            "r": f"{self.id}student",
+            "clazzId": clazz_id
+        })
+        json_data = r.json()
+        for classmate in json_data:
+            birthday = int(classmate.get("birthday", 0)) / 1000
+            classmates.append(StuPerson(
+                name=classmate["name"],
+                id=classmate["id"],
+                birthday=birthday,
+                clazz=StuClass(
+                    id=classmate["clazz"]["id"],
+                    name=classmate["clazz"]["name"],
+                    grade=self.clazz.grade,
+                    school=School(
+                        id=classmate["clazz"]["school"]["id"],
+                        name=classmate["clazz"]["school"]["name"]
+                    )
+                ),
+                code=classmate["code"],
+                email=classmate["email"],
+                qq_number=classmate["im"],
+                gender=Sex.BOY if classmate["gender"] == "1" else Sex.GIRL,
+                mobile=classmate["mobile"]
+            ))
+        return classmates
+
+    def get_classmates(self, clazz_data: StuClass or str = None) -> List[StuPerson]:
+        """
+        获取指定班级里学生列表
+        :param clazz_data:
+            可以为班级id或班级名称或StuClass实例
+            为空时获取本班学生列表
+        :return:
+        """
+        clazz = self.get_clazz(clazz_data)
+        if clazz is None:
+            return None
+        return self.__get_classmates(clazz.id)
+        
+
+    def get_friends(self) -> List[StuPerson]:
+        """
+        获取朋友列表
+        :return:
+        """
+        friends = StuPersonList()
+        r = self._session.get(GET_FRIEND_URL, params={
+            "d": int(time.time())
+        })
+        json_data = r.json()
+        for friend in json_data["friendList"]:
+            friends.append(StuPerson(
+                name=friend["friendName"],
+                id=friend["friendId"]
+            ))
+        return friends
 
 
-def get_classmates(self, clazz: classModel = None) -> personsModel:
-    """
-    返回年级里指定班级里学生列表和朋友列表
-    默认返回本班
-    :param self:
-    :return:
-    """
-    classmates = personsModel(list())
-    clazzId = self.clazz.id if clazz is None else clazz.id
-    r = self._session.get(GET_CLASSMATES_URL, params={
-        "r": f"{self.id}student",
-        "clazzId": clazzId
-    })
-    json_obj = r.json()
-    for classmate in json_obj:
-        b = int(classmate["birthday"]) / \
-            1000 if classmate.get("birthday") else 0
-        classmates.append(personModel(
-            name=classmate["name"],
-            id=classmate["id"],
-            birthday=b if b > 0 else 0,
-            clazz=classModel(
-                id=classmate["clazz"]["id"],
-                name=classmate["clazz"]["name"]
-            ),
-            school=schoolModel(
-                id=classmate["clazz"]["school"]["id"],
-                name=classmate["clazz"]["school"]["name"]
-            ),
-            code=classmate["code"],
-            email=classmate["email"],
-            qq_number=classmate["im"],
-            gender="男" if classmate["gender"] == "1" else "女",
-            mobile=classmate["mobile"]
-        ))
-    return classmates
+    def invite_friend(self, friend: StuPerson or str) -> FriendMsg:
+        """
+        邀请朋友
+        :param friend:
+            StuPerson的实例或用户id
+        :return:
+        """
+        user_id = friend
+        if type(friend) == StuPerson:
+            user_id = friend.id
+        r = self._session.get(INVITE_FRIEND_URL, params={
+            "d": int(time.time()),
+            "friendId": user_id,
+            "isTwoWay": "true"
+        })
+        json_data = r.json()
+        if json_data["result"] == "success":
+            return FriendMsg.SUCCESS
+        elif json_data["message"] == "已发送过邀请，等待对方答复":
+            return FriendMsg.ALREADY
+        else:
+            return FriendMsg.UNDEFINED
 
 
-def get_friends(self) -> personsModel:
-    friends = personsModel(list())
-    json_data = self._session.get(
-        f"{GET_FRIEND_URL}?d={int(time.time())}") \
-        .json()
-    for each in json_data["friendList"]:
-        friends.append(personModel(
-            name=each["friendName"],
-            id=each["friendId"]
-        ))
-
-    return friends
-
-
-def invite_friend(self, user_id: str) -> str:
-    """
-    邀请朋友
-    :param user_id:用户id
-    :return:
-    """
-    p = {
-        "friendId": user_id,
-        "isTwoWay": "true"
-    }
-    r = self._session.get(
-        f"{INVITE_FRIEND_URL}?d={int(time.time())}", params=p)
-    json = r.json()
-    if json["result"] == "success":
-        return "success"
-    elif json["message"] == "已发送过邀请，等待对方答复":
-        return "已发送过邀请，等待对方答复"
-    else:
-        return ""
+    def remove_friend(self, friend: StuPerson or str) -> bool:
+        """
+        删除朋友
+        :param friend:
+            StuPerson的实例或用户id
+        :return:
+        """
+        r = self._session.get(DELETE_FRIEND_URL, params={
+            "d": int(time.time()),
+            "friendId": user_id
+        })
+        return r.json()["result"] == "success"
 
 
-def remove_friend(self, user_id: str) -> bool:
-    """
-    删除朋友
-    :param user_id:用户id
-    :return:
-    """
-    p = {"friendId": user_id}
-    r = self._session.get(
-        f"{DELETE_FRIEND_URL}?d={int(time.time())}", params=p)
-    return r.json()["result"] == "success"
-
-
-def get_clazzs(self) -> list:
-    l = listModel(list())
-    r = self._session.get(f"{GET_CLAZZS_URL}?d={int(time.time())}")
-    json = r.json()
-    for each in json["clazzs"]:
-        l.append(classModel(
-            name=each["name"],
-            id=each["id"]
-        ))
-    return l
+    
 
 
 # def get_teachers(self) -> list:

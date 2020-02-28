@@ -1,14 +1,16 @@
-class listModel(list):
-    def __init__(self, l: list):
+class ExtendedList(list):
+    def __init__(self, l: list = None):
+        if l is None:
+            l = list()
         super().__init__(l)
 
     def find(self, f):
-        for one in self:
-            if f(one):
-                return one
+        for each in self:
+            if f(each):
+                return each
 
-    def findByName(self, name: str):
+    def find_by_name(self, name: str):
         return self.find(lambda d: d.name == name)
 
-    def findById(self, id: str):
+    def find_by_id(self, id: str):
         return self.find(lambda d: d.id == id)
