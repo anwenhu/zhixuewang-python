@@ -1,11 +1,10 @@
-from zhixuewang import get_student
+from zhixuewang import login_student
 import os
-
 
 if __name__ == "__main__":
     username = input("请输入用户名:")
     password = input("请输入密码：")
-    zxw = get_student(username, password)
+    zxw = login_student(username, password)
     os.system("clear")
     print("登录成功. 正在抓取考试列表...")
     exams = zxw.get_exams()

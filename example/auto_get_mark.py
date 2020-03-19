@@ -1,8 +1,7 @@
-from zhixuewang import get_student, rewrite_str
-from zhixuewang.models.exceptionsModel import UserOrPassError
 import zhixuewang
 import time
 import requests
+from zhixuewang import login_student, rewrite_str
 
 
 @rewrite_str(zhixuewang.models.examModel.Mark)
@@ -18,10 +17,11 @@ def f(self):
 
 
 def send_mark(mark):
-    r = requests.get(f"https://sc.ftqq.com/{desp}.send", params={
-        "text":  "智学网出成绩了！",
-        "desp":  str(mark)
-    })
+    r = requests.get(f"https://sc.ftqq.com/{desp}.send",
+                     params={
+                         "text": "智学网出成绩了！",
+                         "desp": str(mark)
+                     })
     if not r.ok:
         time.sleep(5)
         send_mark(mark)
@@ -32,7 +32,7 @@ if __name__ == "__main__":
         username = f.readline().strip()
         password = f.readline().strip()
         desp = f.readline().strip()
-    zxw = get_student(username, password)
+    zxw = login_student(username, password)
     exam = zxw.get_latest_exam()
     while True:
         new_exam = zxw.get_latest_exam()

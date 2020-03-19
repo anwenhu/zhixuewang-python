@@ -12,22 +12,22 @@ class LoginError(Error):
 
 class UserOrPassError(LoginError):
     def __init__(self, value=None):
-        self.value = value or "用户名或密码错误!"
+        super().__init__(value or "用户名或密码错误!")
 
 
 class UserNotFoundError(LoginError):
     def __init__(self, value=None):
-        self.value = value or "用户不存在"
+        super().__init__(value or "用户不存在!")
 
 
 class UserDefunctError(LoginError):
     def __init__(self, value=None):
-        self.value = value or "用户已失效!"
+        super().__init__(value or "用户已失效!")
 
 
 class ArgError(Error):
     def __init__(self, value=None):
-        self.value = value or "请输入正确的参数!"
+        super().__init__(value or "请输入正确的参数!")
 
     def __str__(self):
         return str(self.value)
