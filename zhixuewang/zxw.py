@@ -7,27 +7,24 @@ from zhixuewang.student import Student
 from zhixuewang.teacher import Teacher, Headmaster, Headteacher
 
 
-def get_session(username: str, password: str,
-                _type: str = "auto") -> requests.session:
+def get_session(username: str, password: str, _type: str = "auto") -> requests.session:
     """通过用户名和密码获取session
 
     默认可支持zx和zxt开头的账号, 准考证号以及手机号
     可通过改变type为id来支持使用用户id
 
-    参数
-    --------------------
-    username: str
-        用户名, 可以为准考证号, 手机号, id
-    password: str
-        密码
-    key: str
-        登录方式
-        id 表示用id登录
-        auto 表示自动选择登录方式
+    Args:
+        username (str): 用户名, 可以为准考证号, 手机号, id
+        password (str): 密码
+        _type (str): 登录方式, 为id时表示用id登录, 为auto时表示自动选择登录方式
 
-    返回值
-    --------------------
-    requests.session
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+
+    Returns:
+        requests.session:
     """
     session = requests.Session()
     session.headers[
@@ -73,16 +70,17 @@ def get_session(username: str, password: str,
 def get_session_id(user_id: str, password: str) -> requests.session:
     """通过用户id和密码获取session
 
-    参数
-    --------------------
-    user_id: str
-        id
-    password: str
-        密码
+    Args:
+        user_id (str): 用户id
+        password (str): 密码
 
-    返回值
-    --------------------
-    requests.session
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+
+    Returns:
+        requests.session:
     """
     return get_session(user_id, password, "id")
 
@@ -90,17 +88,15 @@ def get_session_id(user_id: str, password: str) -> requests.session:
 def get_user_id(username: str, password: str) -> str:
     """返回用户id
 
-    参数
-    --------------------
-    user_id: str
-        用户名, 可以为准考证号, 手机号
-    password: str
-        密码
+    Args:
+        username (str): 用户名, 可以为准考证号, 手机号
+        password (str): 密码
 
-    返回值
-    --------------------
-    str
-        用户id
+    Raises:
+        UserOrPassError: 用户名或密码错误
+
+    Returns:
+        str: 用户id
     """
     session = requests.Session()
     session.headers[
@@ -122,13 +118,11 @@ def get_user_id(username: str, password: str) -> str:
 def check_is_student(s: requests.session) -> bool:
     """判断用户是否为学生
 
-    参数
-    --------------------
-    s: requests.session
+    Args:
+        s (requests.session): session
 
-    返回值
-    --------------------
-    bool
+    Returns:
+        bool:
     """
     url = s.get("https://www.zhixue.com/container/container/index/").url
     return "student" in url
@@ -137,16 +131,17 @@ def check_is_student(s: requests.session) -> bool:
 def login_student_id(user_id: str, password: str) -> Student:
     """通过用户id和密码登录学生账号
 
-    参数
-    --------------------
-    user_id: str
-        用户id
-    password: str
-        密码
+    Args:
+        user_id (str): 用户id
+        password (str): 密码
 
-    返回值
-    --------------------
-    Student
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+
+    Returns:
+        Student
     """
     session = get_session_id(user_id, password)
     student = Student(session)
@@ -156,16 +151,17 @@ def login_student_id(user_id: str, password: str) -> Student:
 def login_student(username: str, password: str) -> Student:
     """通过用户名和密码登录学生账号
 
-    参数
-    --------------------
-    username: str
-        用户名, 可以为准考证号, 手机号
-    password: str
-        密码
+    Args:
+        username (str): 用户名, 可以为准考证号, 手机号
+        password (str): 密码
 
-    返回值
-    --------------------
-    Student
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+
+    Returns:
+        Student
     """
     session = get_session(username, password)
     student = Student(session)
@@ -175,16 +171,17 @@ def login_student(username: str, password: str) -> Student:
 def login_teacher_id(user_id: str, password: str) -> Teacher:
     """通过用户id和密码登录老师账号
 
-    参数
-    --------------------
-    user_id: str
-        用户id
-    password: str
-        密码
+    Args:
+        user_id (str): 用户id
+        password (str): 密码
 
-    返回值
-    --------------------
-    Teacher
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+
+    Returns:
+        Teacher
     """
     session = get_session_id(user_id, password)
     teacher = Teacher(session)
@@ -194,45 +191,71 @@ def login_teacher_id(user_id: str, password: str) -> Teacher:
 def login_teacher(username: str, password: str) -> Teacher:
     """通过用户名和密码登录老师账号
 
-    参数
-    --------------------
-    username: str
-        用户名, 可以为准考证号, 手机号
-    password: str
-        密码
+    Args:
+        username (str): 用户名, 可以为准考证号, 手机号
+        password (str): 密码
 
-    返回值
-    --------------------
-    Teacher
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+
+    Returns:
+        Teacher
     """
     session = get_session(username, password)
     teacher = Teacher(session)
     return teacher.set_base_info()
 
 
-def login(username: str = None, password: str = None,
-          user_id: str = None) -> Person:
-    """通过(用户id, 密码)或(用户名, 密码)登录智学网
+def login_id(user_id: str, password: str) -> Person:
+    """通过用户id和密码登录智学网
 
-    参数
-    --------------------
-    username: str
-        用户名, 可以为准考证号, 手机号
-    password: str
-        密码
-    user_id: str
-        用户id
+    Args:
+        user_id (str): 用户id
+        password (str): 密码
 
-    返回值
-    --------------------
-    Person
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+        Exception: 账号角色未知
+
+    Returns:
+        Person
     """
-    if not (password and any([username, user_id])):
-        raise ArgError("请检查参数")
-    if username:
-        session = get_session(username, password)
+    session = get_session_id(user_id, password)
+    if check_is_student(session):
+        return Student(session).set_base_info()
+    teacher = Teacher(session).set_base_info()
+    if teacher.role == "headteacher":
+        teacher = Headteacher(teacher)
+    elif teacher.role == "headmaster":
+        teacher = Headmaster(teacher)
     else:
-        session = get_session_id(user_id, password)
+        raise Exception("账号是未知用户")
+    return teacher.set_base_info()
+
+
+def login(username: str, password: str) -> Person:
+    """通过用户名和密码登录智学网
+
+    Args:
+        username (str): 用户名, 可以为准考证号, 手机号
+        password (str): 密码
+        user_id (str): 用户id
+
+    Raises:
+        ArgError: 参数错误
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+        Exception: 账号角色未知
+
+    Returns:
+        Person
+    """
+    session = get_session(username, password)
     if check_is_student(session):
         return Student(session).set_base_info()
     teacher = Teacher(session).set_base_info()
@@ -248,21 +271,16 @@ def login(username: str = None, password: str = None,
 def rewrite_str(model):
     """重写类的__str__方法
 
-    参数
-    --------------------
-    model:
-        需重写__str__方法的类
+    Args:
+        model: 需重写__str__方法的类
 
-    示例
-    --------------------
-    >>> from zhixuewang.models import School
-
-    >>> @rewrite_str(School)
-    >>> def _(self: School):
-    >>>     return f"<id: {self.id}, name: {self.name}>"
-
-    >>> print(School("test id", "test school"))
-    <id: test id, name: test school>
+    Examples:
+        >>> from zhixuewang.models import School
+        >>> @rewrite_str(School)
+        >>> def _(self: School):
+        >>>     return f"<id: {self.id}, name: {self.name}>"
+        >>> print(School("test id", "test school"))
+        <id: test id, name: test school>
     """
     def str_decorator(func):
         model.__str__ = func

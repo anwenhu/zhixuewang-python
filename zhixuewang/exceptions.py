@@ -27,7 +27,7 @@ class UserDefunctError(LoginError):
 
 class ArgError(Error):
     def __init__(self, value=None):
-        super().__init__(value or "请输入正确的参数!")
+        super().__init__(value or "请输入正确的Args:!")
 
     def __str__(self):
         return str(self.value)

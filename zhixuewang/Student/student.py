@@ -3,7 +3,7 @@ import json
 import time
 import uuid
 from enum import IntEnum
-from typing import List
+from typing import List, Union
 from zhixuewang.models import (ExtendedList, Exam, Mark, Subject, SubjectScore,
                                StuClass, School, Sex, Grade, Phase)
 from zhixuewang.exceptions import UserDefunctError
@@ -12,6 +12,7 @@ from zhixuewang.student.urls import Url
 
 
 def _check_is_uuid(msg: str):
+    """判断msg是否为uuid"""
     return len(msg) == 36 and msg[14] == "4" and msg[8] == msg[13] == msg[18] == msg[23] == "-"
 
 
@@ -28,6 +29,7 @@ class FriendMsg(IntEnum):
 
 
 class Student(StuPerson):
+    """学生账号"""
     def __init__(self, session):
         super().__init__()
         self._session = session
@@ -94,18 +96,14 @@ class Student(StuPerson):
         self.birthday = birthday
         return self
 
-    def get_exam(self, exam_data: Exam or str = None) -> Exam:
+    def get_exam(self, exam_data: Union[Exam, str] = None) -> Exam:
         """获取考试
 
-        参数
-        --------------------
-        exam_data Exam or str:
-            考试id 或 考试名称
-            为Exam实例时直接返回
-            为默认值时返回最新考试
-        返回值
-        --------------------
-        Exam
+        Args:
+            exam_data (Union[Exam, str]): 考试id 或 考试名称, 为Exam实例时直接返回, 为默认值时返回最新考试
+
+        Returns:
+            Exam
         """
         if not exam_data:
             return self.get_latest_exam()
@@ -195,22 +193,16 @@ class Student(StuPerson):
         return mark
 
     def get_self_mark(self,
-                      exam_data: Exam or str = None,
+                      exam_data: Union[Exam, str] = None,
                       has_total_score: bool = True) -> Mark:
         """获取指定考试的成绩
 
-        参数
-        --------------------
-        exam_data: Exam or str
-            考试id 或 考试名称 或 Exam实例
-            默认值为最新考试
-        has_total_score: bool
-            是否计算总分
-            默认为True
+        Args:
+            exam_data (Union[Exam, str]): 考试id 或 考试名称 或 Exam实例, 默认值为最新考试
+            has_total_score (bool): 是否计算总分, 默认为True
 
-        返回值
-        --------------------
-        Mark
+        Returns:
+            Mark
         """
         exam = self.get_exam(exam_data)
         if exam is None:
@@ -234,18 +226,14 @@ class Student(StuPerson):
                         exam=exam))
         return subjects
 
-    def get_subjects(self, exam_data: Exam or str = None) -> ExtendedList[Subject]:
+    def get_subjects(self, exam_data: Union[Exam, str] = None) -> ExtendedList[Subject]:
         """获得指定考试的所有学科(不算总分)
 
-        参数
-        --------------------
-        exam_data: Exam or str
-            考试id 或 考试名称 或 Exam实例
-            默认值为最新考试
+        Args:
+            exam_data (Union[Exam, str]): 考试id 或 考试名称 或 Exam实例, 默认值为最新考试
 
-        返回值
-        --------------------
-        ExtendedList[Subject]
+        Returns:
+            ExtendedList[Subject]
         """
         exam = self.get_exam(exam_data)
         if exam is None:
@@ -261,22 +249,16 @@ class Student(StuPerson):
         return subject
 
     def get_subject(self,
-                    subject_data: Subject or str,
-                    exam_data: Exam or str = None) -> Subject:
+                    subject_data: Union[Subject, str],
+                    exam_data: Union[Exam, str] = None) -> Subject:
         """获取指定考试的学科
 
-        参数
-        --------------------
-        subject_data: Subject or str
-            学科id 或 学科名称
-            为Subject实例时直接返回
-        exam_data: Exam or str
-            考试id 或 考试名称 或 Exam实例
-            默认值为最新考试
+        Args:
+            subject_data (Union[Subject, str]): 学科id 或 学科名称, 为Subject实例时直接返回
+            exam_data (Union[Exam, str]): 考试id 或 考试名称 或 Exam实例, 默认值为最新考试
 
-        返回值
-        --------------------
-        Subject
+        Returns:
+            Subject
         """
         if isinstance(subject_data, Subject):
             return subject_data
@@ -301,22 +283,16 @@ class Student(StuPerson):
         return image_urls
 
     def get_original(self,
-                     subject_data: Subject or str,
-                     exam_data: Exam or str = None) -> List[str]:
+                     subject_data: Union[Subject, str],
+                     exam_data: Union[Exam, str] = None) -> List[str]:
         """获得指定考试学科的原卷地址
 
-        参数
-        --------------------
-        subject_data: Subject or str
-            学科id 或 学科名称 或 Subject实例
-        exam_data: Exam or str
-            考试id 或 考试名称
-            默认为最新考试
+        Args:
+            subject_data (Union[Subject, str]): 学科id 或 学科名称 或 Subject实例
+            exam_data (Union[Exam, str]): 考试id 或 考试名称, 默认为最新考试
 
-        返回值
-        --------------------
-        List[str]
-            原卷地址的列表
+        Returns:
+            List[str]: 原卷地址的列表
         """
         exam = self.get_exam(exam_data)
         if not exam:
@@ -340,19 +316,14 @@ class Student(StuPerson):
                          school=self.clazz.school))
         return clazzs
 
-    def get_clazz(self, clazz_data: StuClass or str = None) -> StuClass:
+    def get_clazz(self, clazz_data: Union[StuClass, str] = None) -> StuClass:
         """获取当前年级班级
 
-        参数
-        --------------------
-        clazz_data: StuClass or str
-            班级id 或 班级名称
-            为StuClass实例时直接返回
-            为空时返回自己班级
+        Args:
+            clazz_data (Union[StuClass, str]): 班级id 或 班级名称, 为StuClass实例时直接返回, 为空时返回自己班级
 
-        返回值
-        --------------------
-        StuClass
+        Returns:
+            StuClass
         """
         if not clazz_data:
             return self.clazz
@@ -394,18 +365,14 @@ class Student(StuPerson):
                     mobile=classmate["mobile"]))
         return classmates
 
-    def get_classmates(self, clazz_data: StuClass or str = None) -> ExtendedList[StuPerson]:
+    def get_classmates(self, clazz_data: Union[StuClass, str] = None) -> ExtendedList[StuPerson]:
         """获取指定班级里学生列表
 
-        参数
-        --------------------
-        clazz_data: StuClass or str
-            班级id 或 班级名称 或 StuClass实例
-            为空时获取本班学生列表
+        Args:
+            clazz_data (Union[StuClass, str]): 班级id 或 班级名称 或 StuClass实例, 为空时获取本班学生列表
 
-        返回值
-        --------------------
-        StuClass
+        Returns:
+            ExtendedList[StuPerson]
         """
         clazz = self.get_clazz(clazz_data)
         if clazz is None:
@@ -423,17 +390,14 @@ class Student(StuPerson):
                 StuPerson(name=friend["friendName"], id=friend["friendId"]))
         return friends
 
-    def invite_friend(self, friend: StuPerson or str) -> FriendMsg:
+    def invite_friend(self, friend: Union[StuPerson, str]) -> FriendMsg:
         """邀请朋友
 
-        参数
-        --------------------
-        friend_data: Subject or str
-            用户id 或 StuPerson的实例
+        Args:
+            friend_data (Union[StuPerson, str]): 用户id 或 StuPerson的实例
 
-        返回值
-        --------------------
-        FriendMsg
+        Returns:
+            FriendMsg
         """
         user_id = friend
         if isinstance(friend, StuPerson):
@@ -452,19 +416,14 @@ class Student(StuPerson):
         else:
             return FriendMsg.UNDEFINED
 
-    def remove_friend(self, friend: StuPerson or str) -> bool:
+    def remove_friend(self, friend: Union[StuPerson, str]) -> bool:
         """删除朋友
 
-        参数
-        --------------------
-        friend_data: Subject or str
-            用户id 或 StuPerson的实例
+        Args:
+            friend_data (Union[StuPerson, str]): 用户id 或 StuPerson的实例
 
-        返回值
-        --------------------
-        bool
-            True 表示删除成功
-            False 表示删除失败
+        Returns:
+            bool: True 表示删除成功, False 表示删除失败
         """
         user_id = friend
         if isinstance(friend, StuPerson):

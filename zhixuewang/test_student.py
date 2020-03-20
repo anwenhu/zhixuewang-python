@@ -1,4 +1,3 @@
-import pytest
 from zhixuewang import login, login_student, login_student_id
 # from zhixuewang.student import FriendMsg
 username, password, user_id = "", "", ""

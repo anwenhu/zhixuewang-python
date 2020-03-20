@@ -4,6 +4,7 @@ from zhixuewang.teacher.models import TeaPerson
 
 
 class Teacher(TeaPerson):
+    """老师账号"""
     def __init__(self, session):
         super().__init__()
         self._session = session

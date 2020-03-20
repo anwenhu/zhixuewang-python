@@ -7,6 +7,7 @@ T = TypeVar("T")
 
 
 class ExtendedList(list, List[T]):
+    """扩展列表, 方便找到列表里的元素"""
     def __init__(self, l: list = None):
         super().__init__(l or list())
 
@@ -24,19 +25,24 @@ class ExtendedList(list, List[T]):
         return ExtendedList(result)
 
     def find_by_name(self, name: str):
+        """返回列表里第一个特定名字的元素"""
         return self.find(lambda d: d.name == name)
 
     def find_all_by_name(self, name: str):
+        """返回列表里所有特定名字的元素"""
         return self.find_all(lambda d: d.name == name)
 
     def find_by_id(self, id: str):
+        """返回列表里第一个特定id的元素"""
         return self.find(lambda d: d.id == id)
 
     def find_all_by_id(self, id: str):
+        """返回列表里所有特定id的元素"""
         return self.find_all(lambda d: d.id == id)
 
 
 class Phase:
+    """学期, 比如七年级, 八年级"""
     def __init__(self, name: str, code: str):
         self.name = name
         self.code = code
@@ -49,6 +55,7 @@ class Phase:
 
 
 class Grade:
+    """年级"""
     def __init__(self, name: str, code: str, phase: Phase):
         self.name = name
         self.code = code
@@ -62,6 +69,7 @@ class Grade:
 
 
 class School:
+    """学校"""
     def __init__(self, id: str, name: str):
         self.id = id
         self.name = name
@@ -77,11 +85,13 @@ class School:
 
 
 class Sex(Enum):
+    """性别"""
     GIRL = "女"
     BOY = "男"
 
 
 class Person:
+    """一些基本属性"""
     def __init__(self,
                  name: str,
                  id: str,
@@ -111,6 +121,7 @@ class Person:
 
 
 class StuClass:
+    """班级"""
     def __init__(self, id: str, name: str, grade: Grade, school: School):
         self.id = id
         self.name = name
@@ -128,6 +139,7 @@ class StuClass:
 
 
 class Exam:
+    """考试"""
     def __init__(self,
                  id: str = "",
                  name: str = "",
@@ -163,6 +175,7 @@ class Exam:
 
 
 class Subject:
+    """学科"""
     def __init__(self,
                  id: str,
                  name: str,
@@ -192,6 +205,7 @@ class Subject:
 
 
 class ExtraRank:
+    """关于分数的额外信息"""
     def __init__(self,
                  avg_score: float = 0,
                  high_score: float = 0,
@@ -225,6 +239,7 @@ class ExtraRank:
 
 
 class SubjectScore:
+    """一门学科的成绩"""
     def __init__(self,
                  score: float,
                  class_rank: ExtraRank = None,
@@ -252,6 +267,7 @@ class SubjectScore:
 
 
 class Mark(ExtendedList):
+    """一场考试的成绩"""
     def __init__(self, l: list = None, exam: Exam = None):
         super().__init__(l)
         self.exam = exam
