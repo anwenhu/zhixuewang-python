@@ -8,8 +8,6 @@ pip install zhixuewang
 ```
 ### 下载 源码 安装
 把项目源码下载后, 在项目根目录输入
-```bash
-python setup install
 ```
 或直接
 ```bash
