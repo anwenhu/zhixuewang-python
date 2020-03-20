@@ -68,11 +68,17 @@
 登录的函数有
 
 .. autofunction:: zhixuewang.login
+    :noindex:
 .. autofunction:: zhixuewang.login_id
+    :noindex:
 .. autofunction:: zhixuewang.login_student
+    :noindex:
 .. autofunction:: zhixuewang.login_teacher
+    :noindex:
 .. autofunction:: zhixuewang.login_student_id
+    :noindex:
 .. autofunction:: zhixuewang.login_teacher_id
+    :noindex:
 
 
 你可以通过::
