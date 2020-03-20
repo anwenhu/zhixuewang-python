@@ -57,7 +57,7 @@ print(zxw.get_self_mark("某中学第二次月考"))
 ```
 (注: 因为智学网移除了部分接口, 所以查询班级平均分, 班级最高分等功能暂时失效)
 
-具体的还可查看[Wiki](https://github.com/anwenhu/zhixuewang/wiki/Home/)~(不过Wiki正在制作中，如果愿意帮忙维护的话，可以加我QQ: 1223009522 备注github wiki)~
+具体的还可查看[Wiki](https://zhixuewang-python.readthedocs.io/zh_CN/latest/)~(不过Wiki正在制作中，如果愿意帮忙维护的话，可以加我QQ: 1223009522 备注github wiki)~
 
 ## 问题和建议
 如果您在使用的过程中遇到任何问题，欢迎前往 [Issue](https://github.com/anwenhu/zhixuewang/issues)提问
