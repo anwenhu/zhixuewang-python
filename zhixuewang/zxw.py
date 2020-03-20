@@ -1,168 +1,289 @@
-import requests
-import random
 import json
-from .models.exceptionsModel import (
-    LoginError, UserDefunctError, UserNotFound, UserOrPassError, ArgError)
-from .models.userModel import User
-from .models.urlModel import *
-from .Student.student import Student
-from .Teacher.teacher import Teacher, Headmaster, Headteacher
+import requests
+from zhixuewang.exceptions import ArgError, UserNotFoundError, UserOrPassError, LoginError
+from zhixuewang.urls import Url
+from zhixuewang.models import Person
+from zhixuewang.student import Student
+from zhixuewang.teacher import Teacher, Headmaster, Headteacher
 
 
-def login_id(user_id: str, password: str) -> requests.session:
-    """
-    通过用户id和密码登录
-    :param user_id: 用户id
-    :param password: 密码
-    :return
-        返回session
+def get_session(username: str, password: str, _type: str = "auto") -> requests.session:
+    """通过用户名和密码获取session
+
+    默认可支持zx和zxt开头的账号, 准考证号以及手机号
+    可通过改变type为id来支持使用用户id
+
+    Args:
+        username (str): 用户名, 可以为准考证号, 手机号, id
+        password (str): 密码
+        _type (str): 登录方式, 为id时表示用id登录, 为auto时表示自动选择登录方式
+
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+
+    Returns:
+        requests.session:
     """
     session = requests.Session()
-    session.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1"
-    msg = session.get(SSO_URL).text
-    json_obj = json.loads(
-        msg[msg.find("{"): msg.rfind("}") + 1].replace("\\", ""))
+    session.headers[
+        "User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1"
+    r = session.get(Url.SSO_URL)
+    msg = r.text
+    json_obj = json.loads(msg.strip().replace("\\", "").replace("'", "")[1:-1])
     if json_obj["code"] != 1000:
         raise LoginError(json_obj["data"])
-    data = json_obj["data"]
-    msg = session.get(SSO_URL,
-                      params={
-                          "username": user_id,
-                          "password": password,
-                          "sourceappname": "tkyh,tkyh",
-                          "key": "id",
-                          "_eventId": "submit",
-                          "lt": data["lt"],
-                          "execution": data["execution"],
-                          "encode": False
-                      }).text
-    json_obj = json.loads(
-        msg[msg.find("{"): msg.rfind("}") + 1].replace("\\", ""))
+    lt = json_obj["data"]["lt"]
+    execution = json_obj["data"]["execution"]
+    r = session.get(Url.SSO_URL,
+                    params={
+                        "encode": "false",
+                        "sourceappname": "tkyh,tkyh",
+                        "_eventId": "submit",
+                        "appid": "zx-container-client",
+                        "client": "web",
+                        "type": "loginByNormal",
+                        "key": _type,
+                        "lt": lt,
+                        "execution": execution,
+                        "customLogoutUrl": "https://www.zhixue.com/login.html",
+                        "username": username,
+                        "password": password
+                    })
+    msg = r.text
+    json_obj = json.loads(msg.strip().replace("\\", "").replace("'", "")[1:-1])
     if json_obj["code"] != 1001:
         if json_obj["code"] == 1002:
             raise UserOrPassError()
-        elif json_obj["code"] == 2009:
-            raise UserNotFound()
+        if json_obj["code"] == 2009:
+            raise UserNotFoundError()
         raise LoginError(json_obj["data"])
-    session.post(SERVICE_URL, data={
+    ticket = json_obj["data"]["st"]
+    session.post(Url.SERVICE_URL, data={
         "action": "login",
-        "username": user_id,
-        "password": password,
-        "ticket": json_obj["data"]["st"],
+        "ticket": ticket,
     })
     return session
 
 
-def get_user_id(user_name: str, password: str) -> str:
+def get_session_id(user_id: str, password: str) -> requests.session:
+    """通过用户id和密码获取session
+
+    Args:
+        user_id (str): 用户id
+        password (str): 密码
+
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+
+    Returns:
+        requests.session:
     """
-    返回用户id
-    :param username: 智学网用户名
-    :param password: 智学网密码
-    :return:
-        成功则返回session和user_id
+    return get_session(user_id, password, "id")
+
+
+def get_user_id(username: str, password: str) -> str:
+    """返回用户id
+
+    Args:
+        username (str): 用户名, 可以为准考证号, 手机号
+        password (str): 密码
+
+    Raises:
+        UserOrPassError: 用户名或密码错误
+
+    Returns:
+        str: 用户id
     """
     session = requests.Session()
-    session.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1"
-    data = session.post(TEST_PASSWORD_URL, data={
-        "loginName": user_name,
-        "password": password,
-        "code": ""
-    }).json()
-    if data.get("data"):
-        return data["data"]
-    elif data["result"] != "success":
+    session.headers[
+        "User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1"
+    r = session.post(Url.TEST_PASSWORD_URL,
+                     data={
+                         "loginName": username,
+                         "password": password,
+                         "code": ""
+                     })
+    json_obj = r.json()  # {"data": ErrorMsg, "result": StatusCode}
+    if json_obj.get("data"):
+        return json_obj["data"]
+    if json_obj["result"] != "success":
         raise UserOrPassError()
-    return None
+    return ""
 
 
-def get_role(s: requests.session) -> str:
+def check_is_student(s: requests.session) -> bool:
+    """判断用户是否为学生
+
+    Args:
+        s (requests.session): session
+
+    Returns:
+        bool:
     """
-    获取用户角色
-    :param s: session
-    :return
-        返回用户角色
-    """
-    r = s.get("https://www.zhixue.com/apicourse/web/getCurrentUser")
-    data = r.json()
-    if data["errorCode"] != 0:
-        raise Exception(data["errorInfo"])
-    return data["result"]["currentUser"]["role"]
+    url = s.get("https://www.zhixue.com/container/container/index/").url
+    return "student" in url
 
 
-def Zhixuewang(user_name: str = None, password: str = None, user_id: str = None) -> User:
-    """
-    通过(用户id, 密码)或(用户名, 密码)登录智学网
-    :param user_name: 用户名
-    :param password: 密码
-    :param user_id: 用户id
-    :return 
+def login_student_id(user_id: str, password: str) -> Student:
+    """通过用户id和密码登录学生账号
 
+    Args:
+        user_id (str): 用户id
+        password (str): 密码
+
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+
+    Returns:
+        Student
     """
-    if not (password and any([user_name, user_id])):
-        raise ArgError("请检查参数.")
-    session = requests.Session()
-    if user_name:
-        session = login_id(get_user_id(user_name, password), password)
-    else:
-        session = login_id(user_id, password)
-    role = get_role(session)
-    if role == "student":
-        user = Student(session)
-    elif role == "teacher":
-        user = Teacher(session)
-    elif role == "headmaster":
-        user = Headmaster(session)
-    elif role == "headteacher":
-        user = Headteacher(session)
+    session = get_session_id(user_id, password)
+    student = Student(session)
+    return student.set_base_info()
+
+
+def login_student(username: str, password: str) -> Student:
+    """通过用户名和密码登录学生账号
+
+    Args:
+        username (str): 用户名, 可以为准考证号, 手机号
+        password (str): 密码
+
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+
+    Returns:
+        Student
+    """
+    session = get_session(username, password)
+    student = Student(session)
+    return student.set_base_info()
+
+
+def login_teacher_id(user_id: str, password: str) -> Teacher:
+    """通过用户id和密码登录老师账号
+
+    Args:
+        user_id (str): 用户id
+        password (str): 密码
+
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+
+    Returns:
+        Teacher
+    """
+    session = get_session_id(user_id, password)
+    teacher = Teacher(session)
+    return teacher.set_base_info()
+
+
+def login_teacher(username: str, password: str) -> Teacher:
+    """通过用户名和密码登录老师账号
+
+    Args:
+        username (str): 用户名, 可以为准考证号, 手机号
+        password (str): 密码
+
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+
+    Returns:
+        Teacher
+    """
+    session = get_session(username, password)
+    teacher = Teacher(session)
+    return teacher.set_base_info()
+
+
+def login_id(user_id: str, password: str) -> Person:
+    """通过用户id和密码登录智学网
+
+    Args:
+        user_id (str): 用户id
+        password (str): 密码
+
+    Raises:
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+        Exception: 账号角色未知
+
+    Returns:
+        Person
+    """
+    session = get_session_id(user_id, password)
+    if check_is_student(session):
+        return Student(session).set_base_info()
+    teacher = Teacher(session).set_base_info()
+    if teacher.role == "headteacher":
+        teacher = Headteacher(teacher)
+    elif teacher.role == "headmaster":
+        teacher = Headmaster(teacher)
     else:
         raise Exception("账号是未知用户")
-    if not user._get_info():
-        raise UserDefunctError("帐号已失效")
-    return user
+    return teacher.set_base_info()
 
 
-def get_user_info_by_user_name(url, user_name: str) -> str:
-    from PIL import Image
-    import time
-    from io import BytesIO
-    import requests
+def login(username: str, password: str) -> Person:
+    """通过用户名和密码登录智学网
 
-    def get_captcha(s: requests.session):
-        r = s.get("https://pass.changyan.com/kaptcha.jpg", params={
-            "type": "normal",
-            "d": time.time() * 1000
-        })
-        Image.open(BytesIO(r.content)).save("captcha.png")
-        r = requests.post(f"{url}/b", files={
-            'image_file': ('captcha.png', open("captcha.png", "rb"), 'application')
-        })
-        return r.json()["value"]
+    Args:
+        username (str): 用户名, 可以为准考证号, 手机号
+        password (str): 密码
+        user_id (str): 用户id
 
-    def check_captcha(s: requests.session, captcha: str):
-        r = s.post("https://pass.changyan.com/api/checkCaptcha", data={
-            "t": "normal",
-            "c": captcha
-        })
-        return r.json().get("ok")
-    s = requests.session()
-    s.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.87 Safari/537.36"
-    s.get("https://pass.changyan.com/forget/forget")
-    while True:
-        captcha = get_captcha(s)
-        if check_captcha(s, captcha):
-            break
-    r = s.post("https://pass.changyan.com/forget/getUserInfo", data={
-        "a": user_name,
-        "p": captcha
-    }, headers={
-        "Referer": "https://pass.changyan.com/forget/forget"
-    })
-    data = r.json()
-    if data["Code"] != 0:
-        return False
+    Raises:
+        ArgError: 参数错误
+        UserOrPassError: 用户名或密码错误
+        UserNotFoundError: 未找到用户
+        LoginError: 登录错误
+        Exception: 账号角色未知
+
+    Returns:
+        Person
+    """
+    session = get_session(username, password)
+    if check_is_student(session):
+        return Student(session).set_base_info()
+    teacher = Teacher(session).set_base_info()
+    if teacher.role == "headteacher":
+        teacher = Headteacher(teacher)
+    elif teacher.role == "headmaster":
+        teacher = Headmaster(teacher)
     else:
-        name = r.json()["Data"][0]["userName"]
-    r = s.post("https://pass.changyan.com/forget/getUserPwdType", data={
-        "u": "0"
-    })
-    return name, r.json()["Data"]["id"]
+        raise Exception("账号是未知用户")
+    return teacher.set_base_info()
+
+
+def rewrite_str(model):
+    """重写类的__str__方法
+
+    Args:
+        model: 需重写__str__方法的类
+
+    Examples:
+        >>> from zhixuewang.models import School
+        >>> @rewrite_str(School)
+        >>> def _(self: School):
+        >>>     return f"<id: {self.id}, name: {self.name}>"
+        >>> print(School("test id", "test school"))
+        <id: test id, name: test school>
+    """
+    def str_decorator(func):
+        model.__str__ = func
+        return func
+
+    return str_decorator

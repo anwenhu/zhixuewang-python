@@ -1,9 +1,18 @@
 __author__ = "anwenhu"
-__date__ = "2019/8/12 22:30"
-__version__ = "1.0.0"
+__date__ = "2020/3/20 00:03"
+__version__ = "1.0.2"
 
-from .zxw import Zhixuewang, get_user_info_by_user_name
+from zhixuewang.zxw import (login, login_id, rewrite_str, login_student, login_teacher,
+                            login_student_id, login_teacher_id, get_session, get_session_id)
 VERSION = tuple(map(int, __version__.split('.')))
 __all__ = [
-    "Student", "Teacher", "Zhixuewang", "get_user_info_by_user_name"
+    "login",
+    "login_id",
+    "rewrite_str",
+    "login_student",
+    "login_teacher",
+    "login_student_id",
+    "login_teacher_id",
+    "get_session",
+    "get_session_id",
 ]
