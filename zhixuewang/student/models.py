@@ -1,23 +1,20 @@
+from dataclasses import dataclass
 from zhixuewang.models import Person, ExtendedList, StuClass, Sex, School
 
 
+@dataclass
 class StuPerson(Person):
     """一些关于学生的信息"""
-    def __init__(self,
-                 name: str = "",
-                 id: str = "",
-                 gender: Sex = Sex.GIRL,
-                 email: str = "",
-                 mobile: str = "",
-                 qq_number: str = "",
-                 birthday: int = 0,
-                 avatar: str = "",
-                 code: str = "",
-                 clazz: StuClass = None):
-        super().__init__(name, id, gender, email, mobile, qq_number, birthday,
-                         avatar)
-        self.code = code
-        self.clazz = clazz
+    name: str = ""
+    id: str = ""
+    gender: Sex = Sex.GIRL
+    email: str = ""
+    mobile: str = ""
+    qq_number: str = ""
+    birthday: int = 0
+    avatar: str = ""
+    code: str = ""
+    clazz: StuClass = None
 
 
 class StuPersonList(ExtendedList):
