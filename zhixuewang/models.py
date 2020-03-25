@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import List, Callable, TypeVar
+from dataclasses import dataclass, field
 import datetime
 
 
@@ -41,47 +42,27 @@ class ExtendedList(list, List[T]):
         return self.find_all(lambda d: d.id == id)
 
 
+@dataclass
 class Phase:
     """学期, 比如七年级, 八年级"""
-    def __init__(self, name: str, code: str):
-        self.name = name
-        self.code = code
-
-    def __repr__(self):
-        return f"Phase(name={self.name}, code={self.code})"
-
-    def __str__(self):
-        return self.__repr__()
+    name: str
+    code: str
 
 
+@dataclass
 class Grade:
     """年级"""
-    def __init__(self, name: str, code: str, phase: Phase):
-        self.name = name
-        self.code = code
-        self.phase = phase
-
-    def __repr__(self):
-        return f"Grade(name={self.name}, code={self.code}, phase={self.phase})"
-
-    def __str__(self):
-        return self.__repr__()
+    name: str
+    code: str
+    phase: Phase
 
 
+@dataclass
 class School:
     """学校"""
-    def __init__(self, id: str, name: str):
-        self.id = id
-        self.name = name
+    id: str = ""
+    name: str = ""
 
-    def __eq__(self, other):
-        return type(other) == type(self) and self.id == other.id
-
-    def __repr__(self):
-        return f"School(id={self.id}, name={self.name})"
-
-    def __str__(self):
-        return self.__repr__()
 
 
 class Sex(Enum):
@@ -90,172 +71,119 @@ class Sex(Enum):
     BOY = "男"
 
 
+
+@dataclass
 class Person:
     """一些基本属性"""
-    def __init__(self,
-                 name: str,
-                 id: str,
-                 gender: Sex = Sex.GIRL,
-                 email: str = "",
-                 mobile: str = "",
-                 qq_number: str = "",
-                 birthday: int = 0,
-                 avatar: str = ""):
-        self.name = name
-        self.id = id
-        self.gender = gender
+    id: str = ""
+    name: str = ""
+    gender: Sex = Sex.GIRL
+    email: str = ""
+    mobile: str = ""
+    qq_number: str = ""
+    birthday: datetime.datetime = datetime.datetime(1970, 1, 1)
+    avatar: str = ""
 
-        self.email = email
-        self.mobile = mobile
-        self.qq_number = qq_number
-
-        self.birthday = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=birthday)
-
-        self.avatar = avatar
-
-    def __repr__(self):
-        return f"Person(id={self.id}, name={self.name}, gender={self.gender})"
-
-    def __str__(self):
-        return self.__repr__()
+    def __post_init__(self):
+        if isinstance(self.birthday, int):
+            self.birthday = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.birthday)
 
 
+@dataclass
 class StuClass:
     """班级"""
-    def __init__(self, id: str, name: str, grade: Grade, school: School):
-        self.id = id
-        self.name = name
-        self.grade = grade
-        self.school = school
-
-    def __eq__(self, other):
-        return type(other) == type(self) and self.id == other.id
-
-    def __repr__(self):
-        return f"StuClass(id={self.id}, name={self.name}, grade={self.grade}, school={self.school})"
-
-    def __str__(self):
-        return self.__repr__()
+    id: str
+    name: str
+    grade: Grade
+    school: School
 
 
+
+@dataclass(eq=False)
 class Exam:
     """考试"""
-    def __init__(self,
-                 id: str = "",
-                 name: str = "",
-                 create_user: Person = None,
-                 create_time: int = 0,
-                 exam_time: int = 0,
-                 complete_time: int = 0,
-                 status: str = "",
-                 grade_code: str = "",
-                 subject_codes: List[str] = None,
-                 schools: List[School] = None,
-                 create_school: School = None):
-        self.id = id
-        self.name = name
-        self.create_user = create_user
-        self.create_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=create_time)
-        self.exam_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=exam_time)
-        self.complete_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=complete_time)
-        self.status = status
-        self.grade_code = grade_code
-        self.subject_codes = subject_codes
-        self.schools = schools
-        self.create_school = create_school or School("", "")
+    id: str = ""
+    name: str = ""
+    status: str = ""
+    grade_code: str = ""
+    subject_codes: List[str] = None
+    schools: List[School] = None
+    create_school: School = School()
+    create_user: Person = Person()
+    create_time: datetime.datetime = datetime.datetime(1970, 1, 1)
+    exam_time: datetime.datetime = datetime.datetime(1970, 1, 1)
+    complete_time: datetime.datetime = datetime.datetime(1970, 1, 1)
 
-    def __repr__(self):
-        return f"Exam(id={self.id}, name={self.name})"
-
-    def __str__(self):
-        return self.__repr__()
-
+    def __post_init__(self):
+        if isinstance(self.create_time, int):
+            self.create_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.create_time)
+        if isinstance(self.exam_time, int):
+            self.exam_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.exam_time)
+        if isinstance(self.complete_time, int):
+            self.complete_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.complete_time)
+        
     def __eq__(self, other):
-        return type(other) == type(self) and self.id == other.id
+        return type(other) == type(self) and other.id == self.id
 
 
+
+@dataclass(eq=False)
 class Subject:
     """学科"""
-    def __init__(self,
-                 id: str,
-                 name: str,
-                 code: str,
-                 status: str = "",
-                 create_user: Person = None,
-                 create_time: int = 0,
-                 standard_score: float = 0,
-                 exam: Exam = None):
-        self.id = id
-        self.name = name
-        self.code = code
-        self.status = status
-        self.create_user = create_user
-        self.create_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=create_time)
-        self.standard_score = standard_score
-        self.exam = exam or Exam()
-
-    def __repr__(self):
-        return f"Subject(id={self.id}, name={self.name}, code={self.code}, exam={self.exam})"
-
-    def __str__(self):
-        return self.__repr__()
-
+    id: str = ""
+    name: str = ""
+    code: str = ""
+    standard_score: float = 0
+    status: str = ""
+    exam: Exam = Exam()
+    create_user: Person = Person()
+    create_time: datetime.datetime = datetime.datetime(1970, 1, 1)
+    
+    def __post_init__(self):
+        if isinstance(self.create_time, int):
+            self.create_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.create_time)
+    
     def __eq__(self, other):
-        return type(other) == type(self) and self.id == other.id
+        return type(other) == type(self) and other.id == self.id
 
 
+@dataclass
 class ExtraRank:
     """关于分数的额外信息"""
-    def __init__(self,
-                 avg_score: float = 0,
-                 high_score: float = 0,
-                 rank: int = 0,
-                 low_score: float = 0):
-        self.avg_score = avg_score
-        self.high_score = high_score
-        self.rank = rank
-        self.low_score = low_score
-
-    def __bool__(self):
-        return bool(self.avg_score or self.high_score or self.rank
-                    or self.low_score)
-
-    def __repr__(self):
-        return f"ExtraRank(avg_score={self.avg_score}, high_score={self.high_score}, rank={self.rank}, low_score={self.low_score})"
+    rank: int = 0
+    avg_score: float = 0
+    low_score: float = 0
+    high_score: float = 0
 
     def __str__(self):
         msg = ""
-        if not self:
+        if not (self.rank or self.avg_score or self.low_score or self.high_score):
             return msg
-        if self.avg_score:
-            msg += f"平均分: {self.avg_score}\n"
-        if self.high_score:
-            msg += f"最高分: {self.high_score}\n"
-        if self.low_score:
-            msg += f"最低分: {self.low_score}\n"
         if self.rank:
             msg += f"排名: {self.rank}\n"
+        if self.avg_score:
+            msg += f"平均分: {self.avg_score}\n"
+        if self.low_score:
+            msg += f"最低分: {self.low_score}\n"
+        if self.high_score:
+            msg += f"最高分: {self.high_score}\n"
         return msg[:-1]
 
 
+
+@dataclass
 class SubjectScore:
     """一门学科的成绩"""
-    def __init__(self,
-                 score: float,
-                 class_rank: ExtraRank = None,
-                 grade_rank: ExtraRank = None,
-                 subject: Subject = None,
-                 person: Person = None,
-                 create_time: int = 0):
-        self.score = score
-        self.class_rank = class_rank or ExtraRank()
-        self.grade_rank = grade_rank or ExtraRank()
-        self.subject = subject
-        self.person = person
-        self.create_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=create_time)
-
-    def __repr__(self):
-        return f"SubjectScore(score={self.score}, class_rank={self.class_rank}, grade_rank={self.grade_rank}, subject={self.subject}, person={self.person})"
+    score: float
+    subject: Subject
+    person: Person
+    create_time: datetime.datetime = datetime.datetime(1970, 1, 1)
+    class_rank: ExtraRank = field(default=ExtraRank(), compare=False)
+    grade_rank: ExtraRank = field(default=ExtraRank(), compare=False)
+    
+    def __post_init__(self):
+        if isinstance(self.create_time, int):
+            self.create_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.create_time)
 
     def __str__(self):
         msg = f"{self.person.name} {self.subject.name}:\n分数: {self.score}\n"
