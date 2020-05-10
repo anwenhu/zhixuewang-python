@@ -14,5 +14,5 @@ setup(
     packages=["zhixuewang", "zhixuewang.student", "zhixuewang.teacher"],
     include_package_data=True,
     platforms="any",
-    install_requires=["requests"],
+    install_requires=["requests", "dataclasses"],
 )
