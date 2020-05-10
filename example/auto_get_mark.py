@@ -4,8 +4,8 @@ import requests
 from zhixuewang import login_student, rewrite_str
 
 
-@rewrite_str(zhixuewang.models.examModel.Mark)
-def f(self):
+@rewrite_str(zhixuewang.models.Mark)
+def _(self):
     msg = f"{self.exam.name}:{self.exam.id}"
     for subject in self:
         msg += "".join([

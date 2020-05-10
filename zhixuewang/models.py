@@ -9,10 +9,10 @@ T = TypeVar("T")
 
 class ExtendedList(list, List[T]):
     """扩展列表, 方便找到列表里的元素"""
-    def __init__(self, l: list = None):
+    def __init__(self, l: List[T] = None):
         super().__init__(l or list())
 
-    def find(self, f: Callable[[object], bool]):
+    def find(self, f: Callable[[T], bool]):
         """返回列表里满足函数f的第一个元素"""
         result = (each for each in self if f(each))
         try:
@@ -20,24 +20,24 @@ class ExtendedList(list, List[T]):
         except StopIteration:
             return None
 
-    def find_all(self, f: Callable[[object], bool]):
+    def find_all(self, f: Callable[[T], bool]) -> List[T]:
         """返回列表里所有满足函数f的元素"""
         result = (each for each in self if f(each))
         return ExtendedList(result)
 
-    def find_by_name(self, name: str):
+    def find_by_name(self, name: str) -> T:
         """返回列表里第一个特定名字的元素"""
         return self.find(lambda d: d.name == name)
 
-    def find_all_by_name(self, name: str):
+    def find_all_by_name(self, name: str) -> List[T]:
         """返回列表里所有特定名字的元素"""
         return self.find_all(lambda d: d.name == name)
 
-    def find_by_id(self, id: str):
+    def find_by_id(self, id: str) -> T:
         """返回列表里第一个特定id的元素"""
         return self.find(lambda d: d.id == id)
 
-    def find_all_by_id(self, id: str):
+    def find_all_by_id(self, id: str) -> List[T]:
         """返回列表里所有特定id的元素"""
         return self.find_all(lambda d: d.id == id)
 
@@ -64,12 +64,10 @@ class School:
     name: str = ""
 
 
-
 class Sex(Enum):
     """性别"""
     GIRL = "女"
     BOY = "男"
-
 
 
 @dataclass
@@ -98,7 +96,6 @@ class StuClass:
     school: School
 
 
-
 @dataclass(eq=False)
 class Exam:
     """考试"""
@@ -121,10 +118,9 @@ class Exam:
             self.exam_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.exam_time)
         if isinstance(self.complete_time, int):
             self.complete_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.complete_time)
-        
+
     def __eq__(self, other):
         return type(other) == type(self) and other.id == self.id
-
 
 
 @dataclass(eq=False)
@@ -138,11 +134,11 @@ class Subject:
     exam: Exam = Exam()
     create_user: Person = Person()
     create_time: datetime.datetime = datetime.datetime(1970, 1, 1)
-    
+
     def __post_init__(self):
         if isinstance(self.create_time, int):
             self.create_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.create_time)
-    
+
     def __eq__(self, other):
         return type(other) == type(self) and other.id == self.id
 
@@ -170,7 +166,6 @@ class ExtraRank:
         return msg[:-1]
 
 
-
 @dataclass
 class SubjectScore:
     """一门学科的成绩"""
@@ -180,7 +175,7 @@ class SubjectScore:
     create_time: datetime.datetime = datetime.datetime(1970, 1, 1)
     class_rank: ExtraRank = field(default=ExtraRank(), compare=False)
     grade_rank: ExtraRank = field(default=ExtraRank(), compare=False)
-    
+
     def __post_init__(self):
         if isinstance(self.create_time, int):
             self.create_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.create_time)
@@ -206,3 +201,12 @@ class Mark(ExtendedList):
 
     def __str__(self):
         return self.__repr__()
+
+
+class subjectTable(Enum):
+    chinese = ""
+    math = ""
+    english = ""
+    physics = "01"
+    chemisry = ""
+    history = ""

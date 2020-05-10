@@ -1,6 +1,6 @@
 import json
 import requests
-from zhixuewang.exceptions import ArgError, UserNotFoundError, UserOrPassError, LoginError
+from zhixuewang.exceptions import UserNotFoundError, UserOrPassError, LoginError
 from zhixuewang.urls import Url
 from zhixuewang.models import Person
 from zhixuewang.student import Student

@@ -87,7 +87,8 @@
 
 来导入它们
 
-其中 `login(username: str, password: str)` 与 `login_id(user_id: str, password: str)` 都支持学生, 老师登录
+其中 `login(username: str, password: str)` 与 `login_id(user_id: str, password: str)` 属于通用函数, 可以支持学生, 老师登录.
+
 
 API列表
 ======================================
@@ -117,9 +118,25 @@ API列表
 高级功能
 ======================================
 
-自定义成绩展示
+自定义展示
 ------------------
+只需重写相应类的 `__str__` 方法, 可通过装饰器简化操作
+例如:如果你想展示加权后的成绩, 比如说计算 `语文*0.8+数学*0.7+英语*0.5` 后的成绩, 可以这么做::
 
+    from zhixuewang import rewrite_str
+    import zhixuewang
+
+    @rewrite_str(zhixuewang.models.examModel.Mark)
+    def _(self):
+        score = 0
+        for subject in self:
+            if subject.subject.name == "语文":
+                score += subject.score * 0.8
+            elif subject.subject.name == "数学":
+                score += subject.score * 0.7
+            elif subject.subject.name == "英语":
+                score += subject.score * 0.5
+        return f"加权后的分数为: {score}"
 
 详细文档
 ==================

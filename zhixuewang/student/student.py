@@ -113,27 +113,26 @@ class Student(StuPerson):
             exams = self.get_exams()
             exam = exams.find_by_id(exam_data)  # 为id
         else:
-            exams = self.__get_page_exam(1, page_size=100, search_school_name=exam_data)
-            exam = exams[0] if exams else None
+            exams = self.get_exams()
+            exam = exams.find_by_name(exam_data)
         return exam
 
-    def __get_page_exam(self, page_index: int, page_size: int = 10, search_school_name: str = "") -> ExtendedList[Exam]:
+    def __get_page_exam(self, page_index: int) -> ExtendedList[Exam]:
         """获取指定页数的考试列表"""
         exams = ExtendedList()
         r = self._session.get(Url.GET_EXAM_URL,
                               params={
-                                "reportType": "exam",
+                                "actualPosition": "0",
                                 "pageIndex": page_index,
-                                "pageSize": page_size,
-                                "searchName": search_school_name
-                              }, headers=self.__get_auth_header())
+                                "pageSize": 10
+                              })
         json_data = r.json()
-        for exam in json_data["result"]["examList"]:
+        for exam in json_data["examList"]:
             exams.append(Exam(
                     id=exam["examId"],
                     name=exam["examName"],
                     create_time=int(exam["examCreateDateTime"]) / 1000,
-                    exam_time=int(exam["examDateTime"]) / 1000,
+                    exam_time=int(exam["examDateTime"] if exam["examDateTime"] else 0) / 1000,
                     grade_code=exam["gradeCode"],
                     subject_codes=exam["subjectCodes"])
                 )
@@ -141,7 +140,7 @@ class Student(StuPerson):
 
     def get_latest_exam(self) -> Exam:
         """获取最新考试"""
-        exams = self.__get_page_exam(1, page_size=1)
+        exams = self.__get_page_exam(1)
         return exams[0] if exams else None
 
     def get_exams(self) -> ExtendedList[Exam]:
