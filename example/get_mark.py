@@ -30,10 +30,8 @@ if __name__ == "__main__":
         print(zxw.get_self_mark())
         while True:
             b = input("是否再次查询(Y为是,N为不是)").strip()
-            if b == "Y":
-                break
-            elif b == "N":
-                continued = False
-                break
-            else:
+            if b != "Y" and b != "N":
                 print("输入有误")
+            if b == "N":
+                continued = False
+            break
