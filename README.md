@@ -7,9 +7,6 @@
 pip install zhixuewang
 ```
 ### 下载 源码 安装
-把项目源码下载后, 在项目根目录输入
-```
-或直接
 ```bash
 git clone https://github.com/anwenhu/zhixuewang
 cd zhixuewang
@@ -19,7 +16,7 @@ python setup.py install
 
 ## 快速使用
 ### 登录:
-保证你已经安装好zhixuewang后, 通过这样来获取自己最新一次考试成绩并打印到屏幕上::
+保证你已经安装好zhixuewang后, 通过这样来获取自己最新一次考试成绩并打印到屏幕上
 
 ```python
 from zhixuewang import login
