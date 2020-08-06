@@ -1,6 +1,6 @@
 from setuptools import setup
 
-version = "1.0.3"
+version = "1.0.4"
 setup(
     name="zhixuewang",
     version=version,
@@ -14,5 +14,5 @@ setup(
     packages=["zhixuewang", "zhixuewang.student", "zhixuewang.teacher", "zhixuewang.tools"],
     include_package_data=True,
     platforms="any",
-    install_requires=["requests", "dataclasses"],
+    install_requires=["requests"],
 )
