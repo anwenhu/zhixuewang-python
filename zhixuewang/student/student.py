@@ -5,7 +5,7 @@ import uuid
 from enum import IntEnum
 from typing import List, Union
 from zhixuewang.models import (ExtendedList, Exam, Mark, Subject, SubjectScore,
-                               StuClass, School, Sex, Grade, Phase)
+                               StuClass, School, Sex, Grade, Phase, ExtraRank)
 from zhixuewang.exceptions import UserDefunctError
 from zhixuewang.student.models import StuPerson, StuPersonList
 from zhixuewang.student.urls import Url
@@ -30,6 +30,7 @@ class FriendMsg(IntEnum):
 
 class Student(StuPerson):
     """学生账号"""
+
     def __init__(self, session):
         super().__init__()
         self._session = session
@@ -89,11 +90,10 @@ class Student(StuPerson):
             grade=Grade(code=json_data["clazz"]["division"]["grade"]["code"],
                         name=json_data["clazz"]["division"]["grade"]["name"],
                         phase=Phase(code=json_data["clazz"]["division"]
-                                    ["grade"]["phase"]["code"],
+                        ["grade"]["phase"]["code"],
                                     name=json_data["clazz"]["division"]
                                     ["grade"]["phase"]["name"])))
-        birthday = int(json_data.get("birthday", 0)) / 1000
-        self.birthday = birthday
+        self.birthday = json_data.get("birthday", 0)
         return self
 
     def get_exam(self, exam_data: Union[Exam, str] = None) -> Exam:
@@ -108,7 +108,12 @@ class Student(StuPerson):
         if not exam_data:
             return self.get_latest_exam()
         if isinstance(exam_data, Exam):
-            return exam_data
+            if not exam_data:
+                return self.get_latest_exam()
+            elif exam_data.classRank and exam_data.gradeRank:
+                return exam_data
+            else:
+                return self.get_exams().find_by_id(exam_data.id)
         if _check_is_uuid(exam_data):
             exams = self.get_exams()
             exam = exams.find_by_id(exam_data)  # 为id
@@ -122,20 +127,23 @@ class Student(StuPerson):
         exams = ExtendedList()
         r = self._session.get(Url.GET_EXAM_URL,
                               params={
-                                "actualPosition": "0",
-                                "pageIndex": page_index,
-                                "pageSize": 10
+                                  "actualPosition": "0",
+                                  "pageIndex": page_index,
+                                  "pageSize": 10
                               })
         json_data = r.json()
-        for exam in json_data["examList"]:
-            exams.append(Exam(
-                    id=exam["examId"],
-                    name=exam["examName"],
-                    create_time=int(exam["examCreateDateTime"]) / 1000,
-                    exam_time=int(exam["examDateTime"] if exam["examDateTime"] else 0) / 1000,
-                    grade_code=exam["gradeCode"],
-                    subject_codes=exam["subjectCodes"])
-                )
+        for exam_data in json_data["examList"]:
+            exam = Exam(
+                id=exam_data["examId"],
+                name=exam_data["examName"],
+                grade_code=exam_data["gradeCode"],
+                subject_codes=exam_data["subjectCodes"],
+                classRank=exam_data.get("customClassRank"),
+                gradeRank=exam_data.get("customSchoolRank")
+            )
+            exam.create_time = exam_data["examCreateDateTime"]
+            exam.exam_time = exam_data["examDateTime"] if exam_data["examDateTime"] else 0
+            exams.append(exam)
         return exams
 
     def get_latest_exam(self) -> Exam:
@@ -156,7 +164,7 @@ class Student(StuPerson):
         return exams
 
     def __get_self_mark(self, exam: Exam, has_total_score: bool) -> Mark:
-        mark = Mark(exam=exam)
+        mark = Mark(exam=exam, person=self)
         r = self._session.get(Url.GET_MARK_URL,
                               params={"examId": exam.id},
                               headers=self.__get_auth_header())
@@ -167,28 +175,35 @@ class Student(StuPerson):
         # exam.name = json_data["total_score"]["examName"]
         # exam.id = json_data["total_score"]["examId"]
         for subject in json_data["paperList"]:
-            mark.append(
-                SubjectScore(score=subject["userScore"],
-                             subject=Subject(
-                                 id=subject["paperId"],
-                                 name=subject["subjectName"],
-                                 code=subject["subjectCode"],
-                                 standard_score=subject["standardScore"],
-                                 exam=exam),
-                             person=self,
-                             create_time=0))
-        if has_total_score:
-            total_score = json_data["totalScore"]
-            mark.append(
-                SubjectScore(score=total_score["userScore"],
-                             subject=Subject(
-                                 id="",
-                                 name=total_score["subjectName"],
-                                 code="99",
-                                 standard_score=total_score["standardScore"],
-                                 exam=exam),
-                             person=self,
-                             create_time=0))
+            subject_score = SubjectScore(
+                score=subject["userScore"],
+                subject=Subject(
+                    id=subject["paperId"],
+                    name=subject["subjectName"],
+                    code=subject["subjectCode"],
+                    standard_score=subject["standardScore"],
+                    exam=exam),
+                person=StuPerson()
+            )
+            # subject_score.create_time = 0
+            mark.append(subject_score)
+        total_score = json_data.get("totalScore")
+        if has_total_score and total_score:
+            subject_score = SubjectScore(
+                score=total_score["userScore"],
+                subject=Subject(
+                    id="",
+                    name=total_score["subjectName"],
+                    code="99",
+                    standard_score=total_score["standardScore"],
+                    exam=exam,
+                ),
+                person=StuPerson(),
+                class_rank=ExtraRank(rank=exam.classRank),
+                grade_rank=ExtraRank(rank=exam.gradeRank)
+            )
+            # subject_score.create_time = 0
+            mark.append(subject_score)
         return mark
 
     def get_self_mark(self,
@@ -205,7 +220,7 @@ class Student(StuPerson):
         """
         exam = self.get_exam(exam_data)
         if exam is None:
-            return []
+            return Mark()
         return self.__get_self_mark(exam, has_total_score)
 
     def __get_subjects(self, exam: Exam) -> ExtendedList[Subject]:
@@ -236,7 +251,7 @@ class Student(StuPerson):
         """
         exam = self.get_exam(exam_data)
         if exam is None:
-            return []
+            return ExtendedList([])
         return self.__get_subjects(exam)
 
     def __get_subject(self, exam: Exam, subject_data: str):
@@ -263,7 +278,7 @@ class Student(StuPerson):
             return subject_data
         exam = self.get_exam(exam_data)
         if exam is None:
-            return []
+            return Subject()
         return self.__get_subject(exam, subject_data)
 
     def __get_original(self, subject_id: str, exam_id: str) -> ExtendedList[str]:
@@ -343,25 +358,25 @@ class Student(StuPerson):
                                   "clazzId": clazz_id
                               })
         json_data = r.json()
-        for classmate in json_data:
-            birthday = int(classmate.get("birthday", 0)) / 1000
-            classmates.append(
-                StuPerson(
-                    name=classmate["name"],
-                    id=classmate["id"],
-                    birthday=birthday,
-                    clazz=StuClass(
-                        id=classmate["clazz"]["id"],
-                        name=classmate["clazz"]["name"],
-                        grade=self.clazz.grade,
-                        school=School(
-                            id=classmate["clazz"]["school"]["id"],
-                            name=classmate["clazz"]["school"]["name"])),
-                    code=classmate["code"],
-                    email=classmate["email"],
-                    qq_number=classmate["im"],
-                    gender=Sex.BOY if classmate["gender"] == "1" else Sex.GIRL,
-                    mobile=classmate["mobile"]))
+        for classmate_data in json_data:
+            birthday = int(int(classmate_data.get("birthday", 0)) / 1000)
+            classmate = StuPerson(
+                name=classmate_data["name"],
+                id=classmate_data["id"],
+                clazz=StuClass(
+                    id=classmate_data["clazz"]["id"],
+                    name=classmate_data["clazz"]["name"],
+                    grade=self.clazz.grade,
+                    school=School(
+                        id=classmate_data["clazz"]["school"]["id"],
+                        name=classmate_data["clazz"]["school"]["name"])),
+                code=classmate_data.get("code"),
+                email=classmate_data["email"],
+                qq_number=classmate_data["im"],
+                gender=Sex.BOY if classmate_data["gender"] == "1" else Sex.GIRL,
+                mobile=classmate_data["mobile"])
+            classmate.birthday = birthday
+            classmates.append(classmate)
         return classmates
 
     def get_classmates(self, clazz_data: Union[StuClass, str] = None) -> ExtendedList[StuPerson]:
@@ -375,7 +390,7 @@ class Student(StuPerson):
         """
         clazz = self.get_clazz(clazz_data)
         if clazz is None:
-            return []
+            return ExtendedList([])
         return self.__get_classmates(clazz.id)
 
     def get_friends(self) -> ExtendedList[StuPerson]:
@@ -393,7 +408,7 @@ class Student(StuPerson):
         """邀请朋友
 
         Args:
-            friend_data (Union[StuPerson, str]): 用户id 或 StuPerson的实例
+            friend (Union[StuPerson, str]): 用户id 或 StuPerson的实例
 
         Returns:
             FriendMsg
@@ -419,7 +434,7 @@ class Student(StuPerson):
         """删除朋友
 
         Args:
-            friend_data (Union[StuPerson, str]): 用户id 或 StuPerson的实例
+            friend (Union[StuPerson, str]): 用户id 或 StuPerson的实例
 
         Returns:
             bool: True 表示删除成功, False 表示删除失败

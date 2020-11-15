@@ -1,6 +1,6 @@
 import json
 import requests
-from zhixuewang.exceptions import UserNotFoundError, UserOrPassError, LoginError
+from zhixuewang.exceptions import UserNotFoundError, UserOrPassError, LoginError, RoleError
 from zhixuewang.urls import Url
 from zhixuewang.models import Person
 from zhixuewang.student import Student
@@ -219,7 +219,7 @@ def login_id(user_id: str, password: str) -> Person:
         UserOrPassError: 用户名或密码错误
         UserNotFoundError: 未找到用户
         LoginError: 登录错误
-        Exception: 账号角色未知
+        RoleError: 账号角色未知
 
     Returns:
         Person
@@ -233,7 +233,7 @@ def login_id(user_id: str, password: str) -> Person:
     elif teacher.role == "headmaster":
         teacher = Headmaster(teacher)
     else:
-        raise Exception("账号是未知用户")
+        raise RoleError()
     return teacher.set_base_info()
 
 
@@ -243,14 +243,13 @@ def login(username: str, password: str) -> Person:
     Args:
         username (str): 用户名, 可以为准考证号, 手机号
         password (str): 密码
-        user_id (str): 用户id
 
     Raises:
         ArgError: 参数错误
         UserOrPassError: 用户名或密码错误
         UserNotFoundError: 未找到用户
         LoginError: 登录错误
-        Exception: 账号角色未知
+        RoleError: 账号角色未知
 
     Returns:
         Person
@@ -264,7 +263,7 @@ def login(username: str, password: str) -> Person:
     elif teacher.role == "headmaster":
         teacher = Headmaster(teacher)
     else:
-        raise Exception("账号是未知用户")
+        raise RoleError()
     return teacher.set_base_info()
 
 

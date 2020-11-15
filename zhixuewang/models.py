@@ -1,16 +1,20 @@
 from enum import Enum
 from typing import List, Callable, TypeVar
 from dataclasses import dataclass, field
-import datetime
-
+from zhixuewang.tools.datetime_tool import get_property
 
 T = TypeVar("T")
 
 
 class ExtendedList(list, List[T]):
     """扩展列表, 方便找到列表里的元素"""
+
     def __init__(self, l: List[T] = None):
         super().__init__(l or list())
+
+    def foreach(self, f: Callable[[T], None]):
+        for each in self:
+            f(each)
 
     def find(self, f: Callable[[T], bool]):
         """返回列表里满足函数f的第一个元素"""
@@ -23,7 +27,7 @@ class ExtendedList(list, List[T]):
     def find_all(self, f: Callable[[T], bool]) -> List[T]:
         """返回列表里所有满足函数f的元素"""
         result = (each for each in self if f(each))
-        return ExtendedList(result)
+        return ExtendedList(list(result))
 
     def find_by_name(self, name: str) -> T:
         """返回列表里第一个特定名字的元素"""
@@ -63,14 +67,20 @@ class School:
     id: str = ""
     name: str = ""
 
+    def __str__(self):
+        return self.name
+
 
 class Sex(Enum):
     """性别"""
     GIRL = "女"
     BOY = "男"
 
+    def __str__(self):
+        return self._value_
 
-@dataclass
+
+@dataclass(repr=False)
 class Person:
     """一些基本属性"""
     id: str = ""
@@ -79,15 +89,17 @@ class Person:
     email: str = ""
     mobile: str = ""
     qq_number: str = ""
-    birthday: datetime.datetime = datetime.datetime(1970, 1, 1)
+    _birthday_timestamp: float = 0
+    birthday = get_property("_birthday_timestamp")
     avatar: str = ""
 
-    def __post_init__(self):
-        if isinstance(self.birthday, int):
-            self.birthday = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.birthday)
+    def __repr__(self):
+        return f"Person(id={self.id}, name={self.name}, gender={self.gender}" \
+               f"{f', qq_number={self.qq_number}' if self.qq_number != '' else ''}" \
+               f"{f', mobile={self.mobile}' if self.mobile != '' else ''}" + ")"
 
 
-@dataclass
+@dataclass(eq=False)
 class StuClass:
     """班级"""
     id: str
@@ -95,29 +107,38 @@ class StuClass:
     grade: Grade
     school: School
 
+    def __eq__(self, other):
+        return type(other) == type(self) and other.id == self.id
+
+    def __str__(self):
+        return f"学校: {self.school} 班级: {self.name}"
+
+    def __repr__(self):
+        return f"StuClass(id={self.id}, name={self.name}, school={self.school.__repr__()})"
+
 
 @dataclass(eq=False)
 class Exam:
     """考试"""
     id: str = ""
     name: str = ""
-    status: str = ""
+    status: str = field(default="", repr=False)
     grade_code: str = ""
-    subject_codes: List[str] = None
-    schools: List[School] = None
-    create_school: School = School()
-    create_user: Person = Person()
-    create_time: datetime.datetime = datetime.datetime(1970, 1, 1)
-    exam_time: datetime.datetime = datetime.datetime(1970, 1, 1)
-    complete_time: datetime.datetime = datetime.datetime(1970, 1, 1)
+    subject_codes: List[str] = field(default_factory=list, repr=False)
+    schools: List[School] = field(default_factory=list, repr=False)
+    create_school: School = field(default_factory=School, repr=False)
+    create_user: Person = field(default_factory=Person, repr=False)
+    _create_timestamp: float = field(default=0, repr=False)
+    create_time = get_property("_create_timestamp")
+    _exam_timestamp: float = field(default=0, repr=False)
+    exam_time = get_property("_exam_timestamp")
+    _complete_timestamp: float = field(default=0, repr=False)
+    complete_time = get_property("_complete_timestamp")
+    classRank: int = field(default=0, repr=False)
+    gradeRank: int = field(default=0, repr=False)
 
-    def __post_init__(self):
-        if isinstance(self.create_time, int):
-            self.create_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.create_time)
-        if isinstance(self.exam_time, int):
-            self.exam_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.exam_time)
-        if isinstance(self.complete_time, int):
-            self.complete_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.complete_time)
+    def __bool__(self):
+        return bool(self.id)
 
     def __eq__(self, other):
         return type(other) == type(self) and other.id == self.id
@@ -130,14 +151,11 @@ class Subject:
     name: str = ""
     code: str = ""
     standard_score: float = 0
-    status: str = ""
-    exam: Exam = Exam()
-    create_user: Person = Person()
-    create_time: datetime.datetime = datetime.datetime(1970, 1, 1)
-
-    def __post_init__(self):
-        if isinstance(self.create_time, int):
-            self.create_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.create_time)
+    status: str = field(default="", repr=False)
+    exam: Exam = field(default_factory=Exam, repr=False)
+    create_user: Person = field(default_factory=Person, repr=False)
+    _create_timestamp: float = field(default=0, repr=False)
+    create_time = get_property("_create_timestamp")
 
     def __eq__(self, other):
         return type(other) == type(self) and other.id == self.id
@@ -151,9 +169,12 @@ class ExtraRank:
     low_score: float = 0
     high_score: float = 0
 
+    def __bool__(self):
+        return bool(self.rank or self.avg_score or self.low_score or self.high_score)
+
     def __str__(self):
         msg = ""
-        if not (self.rank or self.avg_score or self.low_score or self.high_score):
+        if not self:
             return msg
         if self.rank:
             msg += f"排名: {self.rank}\n"
@@ -172,16 +193,13 @@ class SubjectScore:
     score: float
     subject: Subject
     person: Person
-    create_time: datetime.datetime = datetime.datetime(1970, 1, 1)
-    class_rank: ExtraRank = field(default=ExtraRank(), compare=False)
-    grade_rank: ExtraRank = field(default=ExtraRank(), compare=False)
-
-    def __post_init__(self):
-        if isinstance(self.create_time, int):
-            self.create_time = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=self.create_time)
+    _create_timestamp: float = field(default=0, repr=False)
+    create_time = get_property("_create_timestamp")
+    class_rank: ExtraRank = field(default_factory=ExtraRank, compare=False)
+    grade_rank: ExtraRank = field(default_factory=ExtraRank, compare=False)
 
     def __str__(self):
-        msg = f"{self.person.name} {self.subject.name}:\n分数: {self.score}\n"
+        msg = f"{self.subject.name}:\n分数: {self.score}\n"
         if self.class_rank:
             msg += f"班级:\n{self.class_rank}\n"
         if self.grade_rank:
@@ -191,19 +209,21 @@ class SubjectScore:
 
 class Mark(ExtendedList):
     """一场考试的成绩"""
-    def __init__(self, l: list = None, exam: Exam = None):
+
+    def __init__(self, l: list = None, exam: Exam = None, person: Person = None):
         super().__init__(l)
         self.exam = exam
+        self.person = person
 
     def __repr__(self):
-        msg = "".join([f"{subject}\n" for subject in self])
+        msg = f"{self.person.name}-{self.exam.name}\n" + "".join([f"{subject}\n" for subject in self])
         return msg[:-1]
 
     def __str__(self):
         return self.__repr__()
 
 
-class subjectTable(Enum):
+class SubjectTable(Enum):
     chinese = ""
     math = ""
     english = ""

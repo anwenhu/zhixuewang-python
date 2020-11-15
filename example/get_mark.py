@@ -1,9 +1,10 @@
 from zhixuewang import login_student
+from getpass import getpass
 import os
 
 if __name__ == "__main__":
     username = input("请输入用户名:")
-    password = input("请输入密码：")
+    password = getpass()
     zxw = login_student(username, password)
     os.system("clear")
     print("登录成功. 正在抓取考试列表...")

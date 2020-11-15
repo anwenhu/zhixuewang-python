@@ -1,24 +1,27 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from zhixuewang.models import Person, ExtendedList, StuClass, Sex, School
 
 
-@dataclass
+@dataclass(repr=False)
 class StuPerson(Person):
     """一些关于学生的信息"""
-    name: str = ""
-    id: str = ""
-    gender: Sex = Sex.GIRL
-    email: str = ""
-    mobile: str = ""
-    qq_number: str = ""
-    birthday: int = 0
-    avatar: str = ""
     code: str = ""
     clazz: StuClass = None
+
+    def __str__(self):
+        return f"{self.clazz} 姓名: {self.name} 性别: {self.gender} " \
+               f"{f'QQ: {self.qq_number} ' if self.qq_number != '' else ''}" \
+               f"{f'手机号码: {self.mobile}' if self.mobile != '' else ''}"
+
+    def __repr__(self):
+        return f"StuPerson(id={self.id}, clazz={self.clazz.__repr__()}, name={self.name}, gender={self.gender}" \
+               f"{f', qq_number={self.qq_number}' if self.qq_number != '' else ''}" \
+               f"{f', mobile={self.mobile}' if self.mobile != '' else ''}" + ")"
 
 
 class StuPersonList(ExtendedList):
     """学生列表"""
+
     def find_by_code(self, code: str) -> StuPerson:
         """返回第一个准考证号为code的学生"""
         return self.find(lambda p: p.code == code)
