@@ -99,13 +99,16 @@ class Person:
                f"{f', mobile={self.mobile}' if self.mobile != '' else ''}" + ")"
 
 
-@dataclass
+@dataclass(eq=False)
 class StuClass:
     """班级"""
     id: str
     name: str
     grade: Grade
     school: School
+
+    def __eq__(self, other):
+        return type(other) == type(self) and other.id == self.id
 
     def __str__(self):
         return f"学校: {self.school} 班级: {self.name}"

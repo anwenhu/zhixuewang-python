@@ -138,8 +138,8 @@ class Student(StuPerson):
                 name=exam_data["examName"],
                 grade_code=exam_data["gradeCode"],
                 subject_codes=exam_data["subjectCodes"],
-                classRank=exam_data["customClassRank"],
-                gradeRank=exam_data["customSchoolRank"]
+                classRank=exam_data.get("customClassRank"),
+                gradeRank=exam_data.get("customSchoolRank")
             )
             exam.create_time = exam_data["examCreateDateTime"]
             exam.exam_time = exam_data["examDateTime"] if exam_data["examDateTime"] else 0
@@ -187,8 +187,8 @@ class Student(StuPerson):
             )
             # subject_score.create_time = 0
             mark.append(subject_score)
-        if has_total_score:
-            total_score = json_data["totalScore"]
+        total_score = json_data.get("totalScore")
+        if has_total_score and total_score:
             subject_score = SubjectScore(
                 score=total_score["userScore"],
                 subject=Subject(
@@ -370,7 +370,7 @@ class Student(StuPerson):
                     school=School(
                         id=classmate_data["clazz"]["school"]["id"],
                         name=classmate_data["clazz"]["school"]["name"])),
-                code=classmate_data["code"],
+                code=classmate_data.get("code"),
                 email=classmate_data["email"],
                 qq_number=classmate_data["im"],
                 gender=Sex.BOY if classmate_data["gender"] == "1" else Sex.GIRL,
