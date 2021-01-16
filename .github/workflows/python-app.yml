@@ -31,3 +31,7 @@ jobs:
         flake8 ./zhixuewang --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 ./zhixuewang --count --statistics --max-line-length=248
+    - name: Test for example
+      run: |
+        python example/get_weight_mark.py
+        
