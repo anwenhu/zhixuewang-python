@@ -1,6 +1,7 @@
 import hashlib
 import json
 import time
+import requests
 import uuid
 from enum import IntEnum
 from typing import List, Union
@@ -31,9 +32,9 @@ class FriendMsg(IntEnum):
 class Student(StuPerson):
     """学生账号"""
 
-    def __init__(self, session):
+    def __init__(self, session:requests.Session):
         super().__init__()
-        self._session = session
+        self._session:requests.Session = session
         self.username = ""
         self.role = "student"
         self.token_timestamp = ["", 0]
@@ -125,24 +126,27 @@ class Student(StuPerson):
     def __get_page_exam(self, page_index: int) -> ExtendedList[Exam]:
         """获取指定页数的考试列表"""
         exams = ExtendedList()
-        r = self._session.get(Url.GET_EXAM_URL,
-                              params={
-                                  "actualPosition": "0",
-                                  "pageIndex": page_index,
-                                  "pageSize": 10
-                              })
+        print(f"{Url.GET_EXAM_URL}?pageIndex={page_index}&pageSize=10&")
+        print(self._session.cookies)
+        print(self.__get_auth_header()["XToken"])
+        r = self._session.get(f"{Url.GET_EXAM_URL}?pageIndex={page_index}&pageSize=10&",headers={
+            "XToken":self.__get_auth_header()["XToken"],
+            "Referer":"https://www.zhixue.com/activitystudy/web-report/index.html?from=web-container_top"
+            })
+        print(r.text)
+        print(r.status_code)
         json_data = r.json()
-        for exam_data in json_data["examList"]:
+        for exam_data in json_data["result"]["examList"]:
             exam = Exam(
                 id=exam_data["examId"],
-                name=exam_data["examName"],
-                grade_code=exam_data["gradeCode"],
-                subject_codes=exam_data["subjectCodes"],
-                classRank=exam_data.get("customClassRank"),
-                gradeRank=exam_data.get("customSchoolRank")
+                name=exam_data["examName"]#,
+                #grade_code=exam_data["gradeCode"],
+                #subject_codes=exam_data["subjectCodes"],
+                #classRank=exam_data["customClassRank"],
+                #gradeRank=exam_data["customSchoolRank"]
             )
             exam.create_time = exam_data["examCreateDateTime"]
-            exam.exam_time = exam_data["examDateTime"] if exam_data["examDateTime"] else 0
+            #exam.exam_time = exam_data["examDateTime"] if exam_data["examDateTime"] else 0
             exams.append(exam)
         return exams
 
@@ -187,8 +191,8 @@ class Student(StuPerson):
             )
             # subject_score.create_time = 0
             mark.append(subject_score)
-        total_score = json_data.get("totalScore")
-        if has_total_score and total_score:
+        if has_total_score:
+            total_score = json_data["totalScore"]
             subject_score = SubjectScore(
                 score=total_score["userScore"],
                 subject=Subject(
@@ -370,7 +374,7 @@ class Student(StuPerson):
                     school=School(
                         id=classmate_data["clazz"]["school"]["id"],
                         name=classmate_data["clazz"]["school"]["name"])),
-                code=classmate_data.get("code"),
+                code=classmate_data["code"],
                 email=classmate_data["email"],
                 qq_number=classmate_data["im"],
                 gender=Sex.BOY if classmate_data["gender"] == "1" else Sex.GIRL,
