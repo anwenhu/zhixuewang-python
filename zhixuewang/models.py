@@ -9,8 +9,8 @@ T = TypeVar("T")
 class ExtendedList(list, List[T]):
     """扩展列表, 方便找到列表里的元素"""
 
-    def __init__(self, l: List[T] = None):
-        super().__init__(l or list())
+    def __init__(self, lst: List[T] = None):
+        super().__init__(lst or list())
 
     def foreach(self, f: Callable[[T], None]):
         for each in self:
@@ -99,16 +99,13 @@ class Person:
                f"{f', mobile={self.mobile}' if self.mobile != '' else ''}" + ")"
 
 
-@dataclass(eq=False)
+@dataclass
 class StuClass:
     """班级"""
     id: str
     name: str
     grade: Grade
     school: School
-
-    def __eq__(self, other):
-        return type(other) == type(self) and other.id == self.id
 
     def __str__(self):
         return f"学校: {self.school} 班级: {self.name}"
@@ -210,8 +207,8 @@ class SubjectScore:
 class Mark(ExtendedList):
     """一场考试的成绩"""
 
-    def __init__(self, l: list = None, exam: Exam = None, person: Person = None):
-        super().__init__(l)
+    def __init__(self, lst: list = None, exam: Exam = None, person: Person = None):
+        super().__init__(lst)
         self.exam = exam
         self.person = person
 
