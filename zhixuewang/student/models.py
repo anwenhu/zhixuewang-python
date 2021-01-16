@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
-from zhixuewang.models import Person, ExtendedList, StuClass, Sex, School
+from dataclasses import dataclass
+from zhixuewang.models import Person, ExtendedList, StuClass, School
 
 
 @dataclass(repr=False)
