@@ -10,4 +10,3 @@ class Url:
 
     GET_EXAM_URL = f"{BASE_URL}/classreport/class/classReportList/"
     GET_AcademicTermTeachingCycle_URL = f"{BASE_URL}/classreport/class/getAcademicTermTeachingCycle/"
-    
