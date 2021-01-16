@@ -32,9 +32,9 @@ class FriendMsg(IntEnum):
 class Student(StuPerson):
     """学生账号"""
 
-    def __init__(self, session:requests.Session):
+    def __init__(self, session: requests.Session):
         super().__init__()
-        self._session:requests.Session = session
+        self._session: requests.Session = session
         self.username = ""
         self.role = "student"
         self.token_timestamp = ["", 0]
@@ -91,7 +91,7 @@ class Student(StuPerson):
             grade=Grade(code=json_data["clazz"]["division"]["grade"]["code"],
                         name=json_data["clazz"]["division"]["grade"]["name"],
                         phase=Phase(code=json_data["clazz"]["division"]
-                        ["grade"]["phase"]["code"],
+                                    ["grade"]["phase"]["code"],
                                     name=json_data["clazz"]["division"]
                                     ["grade"]["phase"]["name"])))
         self.birthday = json_data.get("birthday", 0)
@@ -129,24 +129,24 @@ class Student(StuPerson):
         print(f"{Url.GET_EXAM_URL}?pageIndex={page_index}&pageSize=10&")
         print(self._session.cookies)
         print(self.__get_auth_header()["XToken"])
-        r = self._session.get(f"{Url.GET_EXAM_URL}?pageIndex={page_index}&pageSize=10&",headers={
-            "XToken":self.__get_auth_header()["XToken"],
-            "Referer":"https://www.zhixue.com/activitystudy/web-report/index.html?from=web-container_top"
-            })
+        r = self._session.get(f"{Url.GET_EXAM_URL}?pageIndex={page_index}&pageSize=10&", headers={
+            "XToken": self.__get_auth_header()["XToken"],
+            "Referer": "https://www.zhixue.com/activitystudy/web-report/index.html?from=web-container_top"
+        })
         print(r.text)
         print(r.status_code)
         json_data = r.json()
         for exam_data in json_data["result"]["examList"]:
             exam = Exam(
                 id=exam_data["examId"],
-                name=exam_data["examName"]#,
-                #grade_code=exam_data["gradeCode"],
-                #subject_codes=exam_data["subjectCodes"],
-                #classRank=exam_data["customClassRank"],
-                #gradeRank=exam_data["customSchoolRank"]
+                name=exam_data["examName"]  # ,
+                # grade_code=exam_data["gradeCode"],
+                # subject_codes=exam_data["subjectCodes"],
+                # classRank=exam_data["customClassRank"],
+                # gradeRank=exam_data["customSchoolRank"]
             )
             exam.create_time = exam_data["examCreateDateTime"]
-            #exam.exam_time = exam_data["examDateTime"] if exam_data["examDateTime"] else 0
+            # exam.exam_time = exam_data["examDateTime"] if exam_data["examDateTime"] else 0
             exams.append(exam)
         return exams
 
