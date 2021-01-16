@@ -126,15 +126,10 @@ class Student(StuPerson):
     def __get_page_exam(self, page_index: int) -> ExtendedList[Exam]:
         """获取指定页数的考试列表"""
         exams = ExtendedList()
-        print(f"{Url.GET_EXAM_URL}?pageIndex={page_index}&pageSize=10&")
-        print(self._session.cookies)
-        print(self.__get_auth_header()["XToken"])
         r = self._session.get(f"{Url.GET_EXAM_URL}?pageIndex={page_index}&pageSize=10&", headers={
             "XToken": self.__get_auth_header()["XToken"],
             "Referer": "https://www.zhixue.com/activitystudy/web-report/index.html?from=web-container_top"
         })
-        print(r.text)
-        print(r.status_code)
         json_data = r.json()
         for exam_data in json_data["result"]["examList"]:
             exam = Exam(
