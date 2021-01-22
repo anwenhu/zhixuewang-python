@@ -225,5 +225,5 @@ class SubjectTable(Enum):
     math = ""
     english = ""
     physics = "01"
-    chemisry = ""
+    chemistry = ""
     history = ""
