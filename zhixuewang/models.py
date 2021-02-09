@@ -6,7 +6,7 @@ from zhixuewang.tools.datetime_tool import get_property
 T = TypeVar("T")
 
 
-class ExtendedList(list, List[T]):
+class ExtendedList(List[T]):
     """扩展列表, 方便找到列表里的元素"""
 
     def __init__(self, l: List[T] = None):
@@ -16,7 +16,7 @@ class ExtendedList(list, List[T]):
         for each in self:
             f(each)
 
-    def find(self, f: Callable[[T], bool]):
+    def find(self, f: Callable[[T], bool]) -> T:
         """返回列表里满足函数f的第一个元素"""
         result = (each for each in self if f(each))
         try:
@@ -136,12 +136,14 @@ class Exam:
     complete_time = get_property("_complete_timestamp")
     classRank: int = field(default=0, repr=False)
     gradeRank: int = field(default=0, repr=False)
+    is_final: bool = False
 
     def __bool__(self):
         return bool(self.id)
 
     def __eq__(self, other):
         return type(other) == type(self) and other.id == self.id
+
 
 
 @dataclass(eq=False)
@@ -159,6 +161,13 @@ class Subject:
 
     def __eq__(self, other):
         return type(other) == type(self) and other.id == self.id
+
+
+@dataclass(eq=False)
+class ExamInfo(Exam):
+    classId: str = ""
+    subjects: List[Subject] = field(default_factory=list, repr=False)
+
 
 
 @dataclass
@@ -207,7 +216,7 @@ class SubjectScore:
         return msg[:-1]
 
 
-class Mark(ExtendedList):
+class Mark(ExtendedList[SubjectScore]):
     """一场考试的成绩"""
 
     def __init__(self, l: list = None, exam: Exam = None, person: Person = None):
