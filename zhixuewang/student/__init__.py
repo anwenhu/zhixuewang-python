@@ -1,3 +1,3 @@
-from zhixuewang.student.student import Student, FriendMsg
+from zhixuewang.student.student import StudentAccount, FriendMsg
 
-__all__ = ["Student", "FriendMsg"]
+__all__ = ["StudentAccount", "FriendMsg"]

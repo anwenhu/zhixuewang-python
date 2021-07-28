@@ -3,11 +3,11 @@ import requests
 from zhixuewang.exceptions import UserNotFoundError, UserOrPassError, LoginError, RoleError
 from zhixuewang.urls import Url
 from zhixuewang.models import Person
-from zhixuewang.student import Student
-from zhixuewang.teacher import Teacher, Headmaster, Headteacher
+from zhixuewang.student import StudentAccount
+from zhixuewang.teacher import TeacherAccount
 
 
-def get_session(username: str, password: str, _type: str = "auto") -> requests.session:
+def get_session(username: str, password: str, _type: str = "auto") -> requests.Session:
     """通过用户名和密码获取session
 
     默认可支持zx和zxt开头的账号, 准考证号以及手机号
@@ -67,7 +67,7 @@ def get_session(username: str, password: str, _type: str = "auto") -> requests.s
     return session
 
 
-def get_session_id(user_id: str, password: str) -> requests.session:
+def get_session_id(user_id: str, password: str) -> requests.Session:
     """通过用户id和密码获取session
 
     Args:
@@ -115,7 +115,7 @@ def get_user_id(username: str, password: str) -> str:
     return ""
 
 
-def check_is_student(s: requests.session) -> bool:
+def check_is_student(s: requests.Session) -> bool:
     """判断用户是否为学生
 
     Args:
@@ -128,7 +128,7 @@ def check_is_student(s: requests.session) -> bool:
     return "student" in url
 
 
-def login_student_id(user_id: str, password: str) -> Student:
+def login_student_id(user_id: str, password: str) -> StudentAccount:
     """通过用户id和密码登录学生账号
 
     Args:
@@ -141,14 +141,14 @@ def login_student_id(user_id: str, password: str) -> Student:
         LoginError: 登录错误
 
     Returns:
-        Student
+        StudentAccount
     """
     session = get_session_id(user_id, password)
-    student = Student(session)
+    student = StudentAccount(session)
     return student.set_base_info()
 
 
-def login_student(username: str, password: str) -> Student:
+def login_student(username: str, password: str) -> StudentAccount:
     """通过用户名和密码登录学生账号
 
     Args:
@@ -161,14 +161,14 @@ def login_student(username: str, password: str) -> Student:
         LoginError: 登录错误
 
     Returns:
-        Student
+        StudentAccount
     """
     session = get_session(username, password)
-    student = Student(session)
+    student = StudentAccount(session)
     return student.set_base_info()
 
 
-def login_teacher_id(user_id: str, password: str) -> Teacher:
+def login_teacher_id(user_id: str, password: str) -> TeacherAccount:
     """通过用户id和密码登录老师账号
 
     Args:
@@ -181,14 +181,14 @@ def login_teacher_id(user_id: str, password: str) -> Teacher:
         LoginError: 登录错误
 
     Returns:
-        Teacher
+        TeacherAccount
     """
     session = get_session_id(user_id, password)
-    teacher = Teacher(session)
+    teacher = TeacherAccount(session)
     return teacher.set_base_info()
 
 
-def login_teacher(username: str, password: str) -> Teacher:
+def login_teacher(username: str, password: str) -> TeacherAccount:
     """通过用户名和密码登录老师账号
 
     Args:
@@ -201,10 +201,10 @@ def login_teacher(username: str, password: str) -> Teacher:
         LoginError: 登录错误
 
     Returns:
-        Teacher
+        TeacherAccount
     """
     session = get_session(username, password)
-    teacher = Teacher(session)
+    teacher = TeacherAccount(session)
     return teacher.set_base_info()
 
 
@@ -226,15 +226,8 @@ def login_id(user_id: str, password: str) -> Person:
     """
     session = get_session_id(user_id, password)
     if check_is_student(session):
-        return Student(session).set_base_info()
-    teacher = Teacher(session).set_base_info()
-    if teacher.role == "headteacher":
-        teacher = Headteacher(teacher)
-    elif teacher.role == "headmaster":
-        teacher = Headmaster(teacher)
-    else:
-        raise RoleError()
-    return teacher.set_base_info()
+        return StudentAccount(session).set_base_info()
+    return TeacherAccount(session).set_base_info()
 
 
 def login(username: str, password: str) -> Person:
@@ -256,15 +249,8 @@ def login(username: str, password: str) -> Person:
     """
     session = get_session(username, password)
     if check_is_student(session):
-        return Student(session).set_base_info()
-    teacher = Teacher(session).set_base_info()
-    if teacher.role == "headteacher":
-        teacher = Headteacher(teacher)
-    elif teacher.role == "headmaster":
-        teacher = Headmaster(teacher)
-    else:
-        raise RoleError()
-    return teacher.set_base_info()
+        return StudentAccount(session).set_base_info()
+    return TeacherAccount(session).set_base_info()
 
 
 def rewrite_str(model):

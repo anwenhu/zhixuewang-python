@@ -1,4 +1,14 @@
+from enum import Enum
+from typing import List
 from zhixuewang.models import Person, StuClass, Sex
+
+
+class TeacherRole(Enum):
+    TEACHER = "老师"
+    HEADMASTER = "校长"
+
+    def __str__(self):
+        return self._value_
 
 
 class TeaPerson(Person):
@@ -12,7 +22,8 @@ class TeaPerson(Person):
                  birthday: int = 0,
                  avatar: str = "",
                  code: str = "",
-                 clazz: StuClass = None):
+                 clazz: StuClass = None,
+                 roles: List[TeacherRole] = [TeacherRole.TEACHER]):
         super().__init__(name, id, gender, email, mobile, qq_number, birthday,
                          avatar)
         self.code = code

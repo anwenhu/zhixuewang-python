@@ -26,10 +26,6 @@ class StuPersonList(ExtendedList):
         """返回第一个准考证号为code的学生"""
         return self.find(lambda p: p.code == code)
 
-    def find_all_by_code(self, code: str) -> ExtendedList[StuPerson]:
-        """返回所有准考证号为code的学生(其实不存在)"""
-        return self.find_all(lambda p: p.code == code)
-
     def find_by_clazz_id(self, clazz_id: str) -> StuPerson:
         """返回第一个班级id为clazz_id的学生"""
         return self.find(lambda p: p.clazz.id == clazz_id)
@@ -50,14 +46,6 @@ class StuPersonList(ExtendedList):
         """返回第一个学校id为school_id的学生"""
         return self.find(lambda p: p.school.id == school_id)
 
-    def find_all_by_school_id(self, school_id: str) -> ExtendedList[StuPerson]:
-        """返回所有学校id为school_id的学生(其实不存在)"""
-        return self.find_all(lambda p: p.school.id == school_id)
-
     def find_by_school(self, school: School) -> StuPerson:
         """返回第一个学校为school的学生"""
         return self.find(lambda p: p.school == school)
-
-    def find_all_by_school(self, school: School) -> ExtendedList[StuPerson]:
-        """返回所有学校为school的学生(其实不存在)"""
-        return self.find_all(lambda p: p.school == school)

@@ -3,13 +3,14 @@ import json
 import time
 import uuid
 from enum import IntEnum
-from typing import List, Union
+from typing import List, Tuple, Union
 from zhixuewang.models import (ExtendedList, Exam, Mark, Subject, SubjectScore,
                                StuClass, School, Sex, Grade, Phase, ExtraRank, ExamInfo)
 from zhixuewang.exceptions import UserDefunctError, PageConnectionError, PageInformationError
 from zhixuewang.student.models import StuPerson, StuPersonList
 from zhixuewang.student.urls import Url
 from json import JSONDecodeError
+
 
 def _check_is_uuid(msg: str):
     """判断msg是否为uuid"""
@@ -28,7 +29,7 @@ class FriendMsg(IntEnum):
     UNDEFINED = 202  # 未知错误
 
 
-class Student(StuPerson):
+class StudentAccount(StuPerson):
     """学生账号"""
 
     def __init__(self, session):
@@ -60,13 +61,16 @@ class Student(StuPerson):
             "authtoken": auth_token
         })
         if not r.ok:
-            raise PageConnectionError(f"__get_auth_header中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(
+                f"__get_auth_header中出错, 状态码为{r.status_code}")
         try:
             if r.json()["errorCode"] != 0:
-                raise PageInformationError(f"__get_auth_header出错, 错误信息为{r.json()['errorInfo']}")
+                raise PageInformationError(
+                    f"__get_auth_header出错, 错误信息为{r.json()['errorInfo']}")
             self.token_timestamp[0] = r.json()["result"]
         except (JSONDecodeError, KeyError) as e:
-            raise PageInformationError(f"__get_auth_header中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
+            raise PageInformationError(
+                f"__get_auth_header中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         self.token_timestamp[1] = time.time()
         return self.__get_auth_header()
 
@@ -82,7 +86,8 @@ class Student(StuPerson):
             self.code = json_data.get("code")
             self.name = json_data.get("name")
             self.avatar = json_data.get("avatar")
-            self.gender = Sex.BOY if json_data.get("gender") == "1" else Sex.GIRL
+            self.gender = Sex.BOY if json_data.get(
+                "gender") == "1" else Sex.GIRL
             self.username = json_data.get("loginName")
             self.id = json_data.get("id")
             self.mobile = json_data.get("mobile")
@@ -97,12 +102,13 @@ class Student(StuPerson):
                 grade=Grade(code=json_data["clazz"]["division"]["grade"]["code"],
                             name=json_data["clazz"]["division"]["grade"]["name"],
                             phase=Phase(code=json_data["clazz"]["division"]
-                            ["grade"]["phase"]["code"],
+                                        ["grade"]["phase"]["code"],
                                         name=json_data["clazz"]["division"]
                                         ["grade"]["phase"]["name"])))
             self.birthday = json_data.get("birthday", 0)
         except (JSONDecodeError, KeyError) as e:
-            raise PageInformationError(f"set_base_info中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
+            raise PageInformationError(
+                f"set_base_info中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return self
 
     def get_exam(self, exam_data: Union[Exam, str] = None) -> Exam:
@@ -130,9 +136,9 @@ class Student(StuPerson):
             exam = exams.find_by_name(exam_data)
         return exam
 
-    def __get_page_exam(self, page_index: int) -> ExtendedList[Exam]:
+    def __get_page_exam(self, page_index: int) -> Tuple[ExtendedList[Exam], bool]:
         """获取指定页数的考试列表"""
-        exams = ExtendedList()
+        exams: ExtendedList[Exam] = ExtendedList()
         r = self._session.get(Url.GET_EXAM_URL,
                               params={
                                   "pageIndex": page_index,
@@ -140,7 +146,8 @@ class Student(StuPerson):
                               },
                               headers=self.__get_auth_header())
         if not r.ok:
-            raise PageConnectionError(f"__get_page_exam中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(
+                f"__get_page_exam中出错, 状态码为{r.status_code}")
         try:
             json_data = r.json()["result"]
             for exam_data in json_data["examList"]:
@@ -150,16 +157,19 @@ class Student(StuPerson):
                 )
                 exam.create_time = exam_data["examCreateDateTime"]
                 exams.append(exam)
-            hasNextPage = json_data["hasNextPage"]
+            hasNextPage: bool = json_data["hasNextPage"]
         except (JSONDecodeError, KeyError) as e:
-            raise PageInformationError(f"__get_page_exam中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
+            raise PageInformationError(
+                f"__get_page_exam中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return exams, hasNextPage
 
     def get_latest_exam(self) -> ExamInfo:
         """获取最新考试"""
-        r = self._session.get(Url.GET_RECENT_EXAM_URL, headers=self.__get_auth_header())
+        r = self._session.get(Url.GET_RECENT_EXAM_URL,
+                              headers=self.__get_auth_header())
         if not r.ok:
-            raise PageConnectionError(f"get_latest_exam中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(
+                f"get_latest_exam中出错, 状态码为{r.status_code}")
         try:
             json_data = r.json()["result"]
             exam_info_data = json_data["examInfo"]
@@ -183,7 +193,8 @@ class Student(StuPerson):
             )
             exam_info.create_time = exam_info_data["examCreateDateTime"]
         except (JSONDecodeError, KeyError) as e:
-            raise PageInformationError(f"get_latest_exam中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
+            raise PageInformationError(
+                f"get_latest_exam中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return exam_info
 
     def get_exams(self) -> ExtendedList[Exam]:
@@ -203,7 +214,8 @@ class Student(StuPerson):
                               params={"examId": exam.id},
                               headers=self.__get_auth_header())
         if not r.ok:
-            raise PageConnectionError(f"__get_self_mark中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(
+                f"__get_self_mark中出错, 状态码为{r.status_code}")
         try:
             json_data = r.json()
             json_data = json_data["result"]
@@ -240,7 +252,8 @@ class Student(StuPerson):
                 # subject_score.create_time = 0
                 mark.append(subject_score)
         except (JSONDecodeError, KeyError) as e:
-            raise PageInformationError(f"__get_self_mark中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
+            raise PageInformationError(
+                f"__get_self_mark中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return mark
 
     def get_self_mark(self,
@@ -266,7 +279,8 @@ class Student(StuPerson):
                               params={"examId": exam.id},
                               headers=self.__get_auth_header())
         if not r.ok:
-            raise PageConnectionError(f"__get_subjects中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(
+                f"__get_subjects中出错, 状态码为{r.status_code}")
         try:
             json_data = r.json()
             for subject in json_data["result"]["paperList"]:
@@ -277,7 +291,8 @@ class Student(StuPerson):
                             standard_score=subject["standardScore"],
                             exam=exam))
         except (JSONDecodeError, KeyError) as e:
-            raise PageInformationError(f"__get_subjects中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
+            raise PageInformationError(
+                f"__get_subjects中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return subjects
 
     def get_subjects(self, exam_data: Union[Exam, str] = None) -> ExtendedList[Subject]:
@@ -329,14 +344,16 @@ class Student(StuPerson):
                               },
                               headers=self.__get_auth_header())
         if not r.ok:
-            raise PageConnectionError(f"__get_original中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(
+                f"__get_original中出错, 状态码为{r.status_code}")
         try:
             json_data = r.json()
             image_urls = ExtendedList()
             for image_url in json.loads(json_data["result"]["sheetImages"]):
                 image_urls.append(image_url)
         except (JSONDecodeError, KeyError) as e:
-            raise PageInformationError(f"__get_original中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
+            raise PageInformationError(
+                f"__get_original中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return image_urls
 
     def get_original(self,
@@ -371,11 +388,12 @@ class Student(StuPerson):
             for clazz in json_data["clazzs"]:
                 clazzs.append(
                     StuClass(name=clazz["name"],
-                            id=clazz["id"],
-                            grade=self.clazz.grade,
-                            school=self.clazz.school))
+                             id=clazz["id"],
+                             grade=self.clazz.grade,
+                             school=self.clazz.school))
         except (JSONDecodeError, KeyError) as e:
-            raise PageInformationError(f"get_clazzs中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
+            raise PageInformationError(
+                f"get_clazzs中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return clazzs
 
     def get_clazz(self, clazz_data: Union[StuClass, str] = None) -> StuClass:
@@ -406,7 +424,8 @@ class Student(StuPerson):
                                   "clazzId": clazz_id
                               })
         if not r.ok:
-            raise PageConnectionError(f"__get_classmates中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(
+                f"__get_classmates中出错, 状态码为{r.status_code}")
         try:
             json_data = r.json()
             for classmate_data in json_data:
@@ -429,7 +448,8 @@ class Student(StuPerson):
                 classmate.birthday = birthday
                 classmates.append(classmate)
         except (JSONDecodeError, KeyError) as e:
-            raise PageInformationError(f"__get_classmates中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
+            raise PageInformationError(
+                f"__get_classmates中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return classmates
 
     def get_classmates(self, clazz_data: Union[StuClass, str] = None) -> ExtendedList[StuPerson]:
@@ -459,7 +479,8 @@ class Student(StuPerson):
                 friends.append(
                     StuPerson(name=friend["friendName"], id=friend["friendId"]))
         except (JSONDecodeError, KeyError) as e:
-            raise PageInformationError(f"get_friends中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
+            raise PageInformationError(
+                f"get_friends中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return friends
 
     def invite_friend(self, friend: Union[StuPerson, str]) -> FriendMsg:

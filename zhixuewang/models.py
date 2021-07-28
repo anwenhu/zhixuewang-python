@@ -145,7 +145,6 @@ class Exam:
         return type(other) == type(self) and other.id == self.id
 
 
-
 @dataclass(eq=False)
 class Subject:
     """学科"""
@@ -167,7 +166,6 @@ class Subject:
 class ExamInfo(Exam):
     classId: str = ""
     subjects: List[Subject] = field(default_factory=list, repr=False)
-
 
 
 @dataclass
@@ -225,7 +223,8 @@ class Mark(ExtendedList[SubjectScore]):
         self.person = person
 
     def __repr__(self):
-        msg = f"{self.person.name}-{self.exam.name}\n" + "".join([f"{subject}\n" for subject in self])
+        msg = f"{self.person.name}-{self.exam.name}\n" + \
+            "".join([f"{subject}\n" for subject in self])
         return msg[:-1]
 
     def __str__(self):
