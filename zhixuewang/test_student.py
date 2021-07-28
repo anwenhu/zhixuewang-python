@@ -8,8 +8,6 @@ def setup_module():
     global username, password, user_id, check_exam_name, check_exam_id, check_chinese_id, check_math_id, check_english_id, check_chinese_score, check_math_score, check_english_score
     with open("user", "r", encoding="utf8") as f:
         username, password, user_id, check_exam_name, check_exam_id, check_chinese_id, check_math_id, check_english_id, check_chinese_score, check_math_score, check_english_score = f.readline().strip().split(" ")
-
-
 class TestStudent:
     def setup_class(self):
         self.zxw = login_student(username, password)
@@ -47,7 +45,7 @@ class TestStudent:
         assert subject.name == "语文" and subject.exam.id == check_exam_id
 
     def test_get_original(self):
-        assert self.zxw.get_original("语文")
+        assert self.zxw.get_original("语文", check_exam_id)
 
     def test_get_clazzs(self):
         for clazz in self.zxw.get_clazzs():

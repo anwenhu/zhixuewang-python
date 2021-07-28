@@ -1,7 +1,5 @@
-from zhixuewang.teacher.teacher import Teacher, Headmaster, Headteacher
+from zhixuewang.teacher.teacher import TeacherAccount
 
 __all__ = [
-    "Teacher",
-    "Headmaster",
-    "Headteacher",
+    "TeacherAccount",
 ]
