@@ -5,9 +5,9 @@ import uuid
 from enum import IntEnum
 from typing import List, Tuple, Union
 from zhixuewang.models import (ExtendedList, Exam, Mark, Subject, SubjectScore,
-                               StuClass, School, Sex, Grade, Phase, ExtraRank, ExamInfo)
+                               StuClass, School, Sex, Grade, Phase, ExtraRank, ExamInfo,
+                               StuPerson, StuPersonList)
 from zhixuewang.exceptions import UserDefunctError, PageConnectionError, PageInformationError
-from zhixuewang.student.models import StuPerson, StuPersonList
 from zhixuewang.student.urls import Url
 from json import JSONDecodeError
 
@@ -125,7 +125,7 @@ class StudentAccount(StuPerson):
         if isinstance(exam_data, Exam):
             if not exam_data:
                 return self.get_latest_exam()
-            elif exam_data.classRank and exam_data.gradeRank:
+            elif exam_data.class_rank and exam_data.grade_rank:
                 return exam_data
             else:
                 return self.get_exams().find_by_id(exam_data.id)
@@ -174,7 +174,7 @@ class StudentAccount(StuPerson):
             json_data = r.json()["result"]
             exam_info_data = json_data["examInfo"]
 
-            subjects = list()
+            subjects = ExtendedList()
 
             for subject_data in exam_info_data["subjectScores"]:
                 subjects.append(Subject(
@@ -246,8 +246,8 @@ class StudentAccount(StuPerson):
                         exam=exam,
                     ),
                     person=StuPerson(),
-                    class_rank=ExtraRank(rank=exam.classRank),
-                    grade_rank=ExtraRank(rank=exam.gradeRank)
+                    class_extraRank=ExtraRank(rank=exam.class_rank),
+                    grade_extraRank=ExtraRank(rank=exam.grade_rank)
                 )
                 # subject_score.create_time = 0
                 mark.append(subject_score)
