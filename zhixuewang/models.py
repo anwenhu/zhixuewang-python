@@ -219,6 +219,7 @@ class SubjectScore:
     create_time = get_property("_create_timestamp")
     class_extraRank: ExtraRank = field(default_factory=ExtraRank, compare=False)
     grade_extraRank: ExtraRank = field(default_factory=ExtraRank, compare=False)
+    exam_extraRank: ExtraRank = field(default_factory=ExtraRank, compare=False)
 
     def __str__(self):
         msg = f"{self.subject.name}:\n分数: {self.score}\n"
@@ -226,6 +227,8 @@ class SubjectScore:
             msg += f"班级:\n{self.class_extraRank}\n"
         if self.grade_extraRank:
             msg += f"年级:\n{self.grade_extraRank}\n"
+        if self.exam_extraRank:
+            msg += f"联考:\n{self.exam_extraRank}\n"
         return msg[:-1]
 
 
