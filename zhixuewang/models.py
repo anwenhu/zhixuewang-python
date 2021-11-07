@@ -221,11 +221,11 @@ class SubjectScore:
     grade_extraRank: ExtraRank = field(default_factory=ExtraRank, compare=False)
 
     def __str__(self):
-        msg = f"{self.subject.name}:\n分数: {self.score}\n"
+        msg = f"{self.subject.name}:{self.score}\n"
         if self.class_extraRank:
-            msg += f"班级:\n{self.class_extraRank}\n"
+            msg += f"班级{self.class_extraRank}\n"
         if self.grade_extraRank:
-            msg += f"年级:\n{self.grade_extraRank}\n"
+            msg += f"年级{self.grade_extraRank}\n"
         return msg[:-1]
 
 
@@ -286,5 +286,5 @@ class SubjectTable(Enum):
     math = ""
     english = ""
     physics = "01"
-    chemisry = ""
+    chemistry = ""
     history = ""
