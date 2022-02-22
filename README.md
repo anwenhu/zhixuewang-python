@@ -1,5 +1,5 @@
 # zhixuewang-python
-
+**该项目已由 @MasterYuan418 维护, [项目地址](https://github.com/MasterYuan418/zhixue-middleware)**
 ## 安装:
 
 ### 使用 pip 安装(推荐)
