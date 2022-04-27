@@ -1,6 +1,21 @@
 from zhixuewang import login_student
 from getpass import getpass
+from zhixuewang import rewrite_str
+import zhixuewang.models
 import os
+
+
+@rewrite_str(zhixuewang.models.Mark) #此处重写str方法
+# 旧版本（1.0.X）会格式化后输出，新版本(1.1.X)中get_self_mark()方法不再格式化，所以在此重写方法，友好输出。
+def _(self):
+    msg = f"{self.exam.name}:{self.exam.id}"
+    for subject in self:
+        msg += "".join([
+            "  \n",
+            f"# {subject.subject.name}  \n",
+            f"分数: {subject.score}  \n",
+        ])
+    return msg
 
 if __name__ == "__main__":
     username = input("请输入用户名:")
@@ -28,6 +43,7 @@ if __name__ == "__main__":
         i = int(i)
         exam = exams[i]
         print("成绩为:")
+        print("\n")
         print(zxw.get_self_mark())
         while True:
             b = input("是否再次查询(Y为是,N为不是)").strip()
