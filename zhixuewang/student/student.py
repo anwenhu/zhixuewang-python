@@ -4,8 +4,8 @@ import time
 import uuid
 from enum import IntEnum
 from typing import List, Tuple, Union
-from zhixuewang.models import (ExtendedList, Exam, Mark, Subject, SubjectScore,
-                               StuClass, School, Sex, Grade, Phase, ExtraRank, ExamInfo,
+from zhixuewang.models import (BasicSubject, ExtendedList, Exam, Homework, HwAnsPubData, HwResource, HwType, Mark, StuHomework, Subject, SubjectScore,
+                               StuClass, School, Sex, Grade, Phase, ExamInfo,
                                StuPerson, StuPersonList)
 from zhixuewang.exceptions import UserDefunctError, PageConnectionError, PageInformationError
 from zhixuewang.student.urls import Url
@@ -39,7 +39,7 @@ class StudentAccount(StuPerson):
         self.role = "student"
         self.token_timestamp = ["", 0]
 
-    def __get_auth_header(self) -> dict:
+    def _get_auth_header(self) -> dict:
         """获取header"""
         auth_guid = str(uuid.uuid4())
         auth_time_stamp = str(int(time.time() * 1000))
@@ -62,17 +62,17 @@ class StudentAccount(StuPerson):
         })
         if not r.ok:
             raise PageConnectionError(
-                f"__get_auth_header中出错, 状态码为{r.status_code}")
+                f"_get_auth_header中出错, 状态码为{r.status_code}")
         try:
             if r.json()["errorCode"] != 0:
                 raise PageInformationError(
-                    f"__get_auth_header出错, 错误信息为{r.json()['errorInfo']}")
+                    f"_get_auth_header出错, 错误信息为{r.json()['errorInfo']}")
             self.token_timestamp[0] = r.json()["result"]
         except (JSONDecodeError, KeyError) as e:
             raise PageInformationError(
-                f"__get_auth_header中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
+                f"_get_auth_header中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         self.token_timestamp[1] = time.time()
-        return self.__get_auth_header()
+        return self._get_auth_header()
 
     def set_base_info(self):
         """设置账户基本信息, 如用户id, 姓名, 学校等"""
@@ -111,7 +111,7 @@ class StudentAccount(StuPerson):
                 f"set_base_info中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return self
 
-    def get_exam(self, exam_data: Union[Exam, str] = None) -> Exam:
+    def get_exam(self, exam_data: Union[Exam, str] = "") -> Exam:
         """获取考试
 
         Args:
@@ -136,7 +136,7 @@ class StudentAccount(StuPerson):
             exam = exams.find_by_name(exam_data)
         return exam
 
-    def __get_page_exam(self, page_index: int) -> Tuple[ExtendedList[Exam], bool]:
+    def get_page_exam(self, page_index: int) -> Tuple[ExtendedList[Exam], bool]:
         """获取指定页数的考试列表"""
         exams: ExtendedList[Exam] = ExtendedList()
         r = self._session.get(Url.GET_EXAM_URL,
@@ -144,10 +144,10 @@ class StudentAccount(StuPerson):
                                   "pageIndex": page_index,
                                   "pageSize": 10
                               },
-                              headers=self.__get_auth_header())
+                              headers=self._get_auth_header())
         if not r.ok:
             raise PageConnectionError(
-                f"__get_page_exam中出错, 状态码为{r.status_code}")
+                f"get_page_exam中出错, 状态码为{r.status_code}")
         try:
             json_data = r.json()["result"]
             for exam_data in json_data["examList"]:
@@ -160,13 +160,13 @@ class StudentAccount(StuPerson):
             hasNextPage: bool = json_data["hasNextPage"]
         except (JSONDecodeError, KeyError) as e:
             raise PageInformationError(
-                f"__get_page_exam中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
+                f"get_page_exam中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return exams, hasNextPage
 
     def get_latest_exam(self) -> ExamInfo:
         """获取最新考试"""
         r = self._session.get(Url.GET_RECENT_EXAM_URL,
-                              headers=self.__get_auth_header())
+                              headers=self._get_auth_header())
         if not r.ok:
             raise PageConnectionError(
                 f"get_latest_exam中出错, 状态码为{r.status_code}")
@@ -174,7 +174,7 @@ class StudentAccount(StuPerson):
             json_data = r.json()["result"]
             exam_info_data = json_data["examInfo"]
 
-            subjects = ExtendedList()
+            subjects: ExtendedList[Subject] = ExtendedList()
 
             for subject_data in exam_info_data["subjectScores"]:
                 subjects.append(Subject(
@@ -199,11 +199,11 @@ class StudentAccount(StuPerson):
 
     def get_exams(self) -> ExtendedList[Exam]:
         """获取所有考试"""
-        exams = ExtendedList()
+        exams: ExtendedList[Exam] = ExtendedList()
         i = 1
         check = True
         while check:
-            cur_exams, check = self.__get_page_exam(i)
+            cur_exams, check = self.get_page_exam(i)
             exams.extend(cur_exams)
             i += 1
         return exams
@@ -212,7 +212,7 @@ class StudentAccount(StuPerson):
         mark = Mark(exam=exam, person=self)
         r = self._session.get(Url.GET_MARK_URL,
                               params={"examId": exam.id},
-                              headers=self.__get_auth_header())
+                              headers=self._get_auth_header())
         if not r.ok:
             raise PageConnectionError(
                 f"__get_self_mark中出错, 状态码为{r.status_code}")
@@ -229,7 +229,7 @@ class StudentAccount(StuPerson):
                         name=subject["subjectName"],
                         code=subject["subjectCode"],
                         standard_score=subject["standardScore"],
-                        exam=exam),
+                        exam_id=exam.id),
                     person=StuPerson()
                 )
                 # subject_score.create_time = 0
@@ -243,11 +243,11 @@ class StudentAccount(StuPerson):
                         name=total_score["subjectName"],
                         code="99",
                         standard_score=total_score["standardScore"],
-                        exam=exam,
+                        exam_id=exam.id,
                     ),
                     person=StuPerson(),
-                    class_extraRank=ExtraRank(rank=exam.class_rank),
-                    grade_extraRank=ExtraRank(rank=exam.grade_rank)
+                    class_rank=exam.class_rank,
+                    grade_rank=exam.grade_rank
                 )
                 # subject_score.create_time = 0
                 mark.append(subject_score)
@@ -257,7 +257,7 @@ class StudentAccount(StuPerson):
         return mark
 
     def get_self_mark(self,
-                      exam_data: Union[Exam, str] = None,
+                      exam_data: Union[Exam, str] = "",
                       has_total_score: bool = True) -> Mark:
         """获取指定考试的成绩
 
@@ -274,10 +274,10 @@ class StudentAccount(StuPerson):
         return self.__get_self_mark(exam, has_total_score)
 
     def __get_subjects(self, exam: Exam) -> ExtendedList[Subject]:
-        subjects = ExtendedList()
+        subjects: ExtendedList[Subject] = ExtendedList()
         r = self._session.get(Url.GET_SUBJECT_URL,
                               params={"examId": exam.id},
-                              headers=self.__get_auth_header())
+                              headers=self._get_auth_header())
         if not r.ok:
             raise PageConnectionError(
                 f"__get_subjects中出错, 状态码为{r.status_code}")
@@ -289,13 +289,13 @@ class StudentAccount(StuPerson):
                             name=subject["subjectName"],
                             code=subject["subjectCode"],
                             standard_score=subject["standardScore"],
-                            exam=exam))
+                            exam_id=exam.id))
         except (JSONDecodeError, KeyError) as e:
             raise PageInformationError(
                 f"__get_subjects中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return subjects
 
-    def get_subjects(self, exam_data: Union[Exam, str] = None) -> ExtendedList[Subject]:
+    def get_subjects(self, exam_data: Union[Exam, str] = "") -> ExtendedList[Subject]:
         """获得指定考试的所有学科(不算总分)
 
         Args:
@@ -319,7 +319,7 @@ class StudentAccount(StuPerson):
 
     def get_subject(self,
                     subject_data: Union[Subject, str],
-                    exam_data: Union[Exam, str] = None) -> Subject:
+                    exam_data: Union[Exam, str] = "") -> Subject:
         """获取指定考试的学科
 
         Args:
@@ -334,21 +334,22 @@ class StudentAccount(StuPerson):
         exam = self.get_exam(exam_data)
         if exam is None:
             return Subject()
-        return self.__get_subject(exam, subject_data)
+        subject = self.__get_subject(exam, subject_data)
+        return subject if subject is not None else Subject()
 
-    def __get_original(self, subject_id: str, exam_id: str) -> ExtendedList[str]:
+    def __get_original(self, subject_id: str, exam_id: str) -> List[str]:
         r = self._session.get(Url.GET_ORIGINAL_URL,
                               params={
                                   "examId": exam_id,
                                   "paperId": subject_id,
                               },
-                              headers=self.__get_auth_header())
+                              headers=self._get_auth_header())
         if not r.ok:
             raise PageConnectionError(
                 f"__get_original中出错, 状态码为{r.status_code}")
         try:
             json_data = r.json()
-            image_urls = ExtendedList()
+            image_urls = []
             for image_url in json.loads(json_data["result"]["sheetImages"]):
                 image_urls.append(image_url)
         except (JSONDecodeError, KeyError) as e:
@@ -358,7 +359,7 @@ class StudentAccount(StuPerson):
 
     def get_original(self,
                      subject_data: Union[Subject, str],
-                     exam_data: Union[Exam, str] = None) -> List[str]:
+                     exam_data: Union[Exam, str] = "") -> List[str]:
         """获得指定考试学科的原卷地址
 
         Args:
@@ -378,7 +379,7 @@ class StudentAccount(StuPerson):
 
     def get_clazzs(self) -> ExtendedList[StuClass]:
         """获取当前年级所有班级"""
-        clazzs = ExtendedList()
+        clazzs: ExtendedList[StuClass] = ExtendedList()
         r = self._session.get(Url.GET_CLAZZS_URL,
                               params={"d": int(time.time())})
         if not r.ok:
@@ -396,7 +397,7 @@ class StudentAccount(StuPerson):
                 f"get_clazzs中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return clazzs
 
-    def get_clazz(self, clazz_data: Union[StuClass, str] = None) -> StuClass:
+    def get_clazz(self, clazz_data: Union[StuClass, str] = "") -> StuClass:
         """获取当前年级班级
 
         Args:
@@ -452,7 +453,7 @@ class StudentAccount(StuPerson):
                 f"__get_classmates中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
         return classmates
 
-    def get_classmates(self, clazz_data: Union[StuClass, str] = None) -> ExtendedList[StuPerson]:
+    def get_classmates(self, clazz_data: Union[StuClass, str] = "") -> ExtendedList[StuPerson]:
         """获取指定班级里学生列表
 
         Args:
@@ -531,3 +532,85 @@ class StudentAccount(StuPerson):
         if not r.ok:
             raise PageConnectionError(f"remove_friend中出错, 状态码为{r.status_code}")
         return r.json()["result"] == "success"
+    
+    def get_homeworks(self, size: int = 20, is_complete: bool = False, subject_code: str = "-1", createTime: int = 0)  -> ExtendedList[StuHomework]:
+        """获取指定数量的作业(暂时不支持获取所有作业)
+
+        Args:
+            size (int): 返回的数量
+            is_complete (bool): True 表示取已完成的作业, False 表示取未完成的作业
+            subject_code (code): "01" 表示取语文作业, "02"表示取数学作业, 以此类推
+            createTime (int): 取创建时间在多久以前的作业, 0表示从最新取 (暂时用不到)
+        Returns:
+            ExtendedList[StuHomework]: 作业(不包含作业资源)
+        """
+        r = self._session.get(Url.GET_HOMEWORK_URL, params={
+            "pageIndex": 2,
+            "completeStatus": 1 if is_complete else 0,
+            "pageSize": size, # 取几个
+            "subjectCode": subject_code,
+            "token": self._get_auth_header()["XToken"],
+            "createTime": createTime # 创建时间在多久以前的 0 为从最新开始
+        })
+        homeworks: ExtendedList[StuHomework] = ExtendedList()
+        data = r.json()["result"]
+        for each in data["list"]:
+            homeworks.append(StuHomework(
+                id=each["hwId"],
+                title=each["hwTitle"],
+                type=HwType(
+                    name=each["homeWorkTypeDTO"]["typeName"],
+                    code=each["homeWorkTypeDTO"]["typeCode"],
+                ),
+                begin_time=each["beginTime"] / 1000,
+                end_time=each["endTime"] / 1000,
+                create_time=each["createTime"] / 1000,
+                subject=BasicSubject(
+                    name=each["subjectName"],
+                    code=each["subjectCode"]
+                ),
+                is_allow_makeup=bool(each["isAllowMakeup"]),
+                class_id=each["classId"],
+                ansPubData=HwAnsPubData(
+                    name=each["openAnswerDTO"]["answerPubName"],
+                    code=each["openAnswerDTO"]["answerPubType"]
+                ),
+                stu_hwid=each["stuHwId"]
+            ))
+        return homeworks
+    
+    def get_homework_resources(self, hwid: str, hw_typecode: int) -> List[HwResource]:
+        """获取指定作业的作业资源(例如题目文档)
+
+        Args:
+            hwid (str): 作业id
+            hw_typecode (int): 作业类型代码
+        Returns:
+            List[HwResource]: 作业资源
+        """
+        if hw_typecode == 102:
+            return []
+        r = self._session.post(Url.GET_HOMEWORK_RESOURCE_URL, json={
+            "base":{
+                "appId": "WNLOIVE",
+                "appVersion": "",
+                "sysVersion": "v1001",
+                "sysType": "web",
+                "packageName": "com.iflytek.edu.hw",
+                "udid": self.id,
+                "expand": {}
+            },
+            "params": {"hwId":hwid}
+        }, headers={
+            "Authorization": self._get_auth_header()["XToken"],
+        })
+        data = r.json()["result"]
+        resources = []
+        for each in data["topicAttachments"]:
+            resources.append(HwResource(
+                name=each["name"],
+                path=each["path"]
+            ))
+        return resources
+
+
