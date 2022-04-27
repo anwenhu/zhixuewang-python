@@ -1,6 +1,6 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
-version = "1.0.7"
+version = "1.1.0"
 setup(
     name="zhixuewang",
     version=version,
@@ -11,8 +11,8 @@ setup(
     author="anwenhu",
     author_email="anemailpocket@163.com",
 
-    packages=["zhixuewang", "zhixuewang.student", "zhixuewang.teacher", "zhixuewang.tools"],
+    packages=find_packages(),
     include_package_data=True,
     platforms="any",
-    install_requires=["requests"],
+    install_requires=["requests", "httpx"],
 )

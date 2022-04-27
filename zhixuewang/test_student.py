@@ -42,7 +42,7 @@ class TestStudent:
 
     def test_get_subject(self):
         subject = self.zxw.get_subject("语文", check_exam_name)
-        assert subject.name == "语文" and subject.exam.id == check_exam_id
+        assert subject.name == "语文" and subject.exam_id == check_exam_id
 
     def test_get_original(self):
         assert self.zxw.get_original("语文", check_exam_id)

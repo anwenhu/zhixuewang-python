@@ -30,3 +30,8 @@ class Url:
     # GET_CLASSMATES_URL = f"{BASE_URL}/zhixuebao/zhixuebao/getClassStudent/"
     GET_CLASSMATES_URL = f"{BASE_URL}/container/contact/student/students"
     GET_TEACHERS_URL = f"{BASE_URL}/container/contact/student/teachers"
+
+    APP_BASE_URL = "https://mhw.zhixue.com"
+    # Homework
+    GET_HOMEWORK_URL = f"{APP_BASE_URL}/homework_middle_service/stuapp/getStudentHomeWorkList"
+    GET_HOMEWORK_RESOURCE_URL = f"{APP_BASE_URL}/hw/manage/homework/redeploy"

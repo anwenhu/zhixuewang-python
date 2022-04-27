@@ -1,6 +1,6 @@
 __author__ = "anwenhu"
-__date__ = "2021/7/31 13:30"
-__version__ = "1.0.7"
+__date__ = "2022/4/27 12:20"
+__version__ = "1.1.0"
 
 from zhixuewang.zxw import (login, login_id, rewrite_str, login_student, login_teacher,
                             login_student_id, login_teacher_id, get_session, get_session_id)

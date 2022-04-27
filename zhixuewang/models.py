@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import List, Callable, TypeVar
+from pickletools import long1
+from typing import List, Callable, Union, TypeVar
 from dataclasses import dataclass, field
 from zhixuewang.tools.datetime_tool import get_property
 
@@ -9,14 +10,14 @@ T = TypeVar("T")
 class ExtendedList(List[T]):
     """扩展列表, 方便找到列表里的元素"""
 
-    def __init__(self, l: List[T] = None):
+    def __init__(self, l: List[T] = list()):
         super().__init__(l or list())
 
     def foreach(self, f: Callable[[T], None]):
         for each in self:
             f(each)
 
-    def find(self, f: Callable[[T], bool]) -> T:
+    def find(self, f: Callable[[T], bool]) -> Union[T, None]:
         """返回列表里满足函数f的第一个元素"""
         result = (each for each in self if f(each))
         try:
@@ -24,24 +25,24 @@ class ExtendedList(List[T]):
         except StopIteration:
             return None
 
-    def find_all(self, f: Callable[[T], bool]) -> List[T]:
+    def find_all(self, f: Callable[[T], bool]) -> "ExtendedList[T]":
         """返回列表里所有满足函数f的元素"""
         result = (each for each in self if f(each))
         return ExtendedList(list(result))
 
-    def find_by_name(self, name: str) -> T:
-        """返回列表里第一个特定名字的元素"""
+    def find_by_name(self, name: str) -> Union[T, None]:
+        """返回列表里第一个特定名字的元素, 没有则返回None"""
         return self.find(lambda d: d.name == name)
 
-    def find_all_by_name(self, name: str) -> List[T]:
+    def find_all_by_name(self, name: str) -> "ExtendedList[T]":
         """返回列表里所有特定名字的元素"""
         return self.find_all(lambda d: d.name == name)
 
-    def find_by_id(self, id: str) -> T:
-        """返回列表里第一个特定id的元素"""
+    def find_by_id(self, id: str) -> Union[T, None]:
+        """返回列表里第一个特定id的元素, 没有则返回None"""
         return self.find(lambda d: d.id == id)
 
-    def find_all_by_id(self, id: str) -> List[T]:
+    def find_all_by_id(self, id: str) -> "ExtendedList[T]":
         """返回列表里所有特定id的元素"""
         return self.find_all(lambda d: d.id == id)
 
@@ -129,7 +130,25 @@ class StuPerson(Person):
                f"{f', qq_number={self.qq_number}' if self.qq_number != '' else ''}" \
                f"{f', mobile={self.mobile}' if self.mobile != '' else ''}" + ")"
 
+@dataclass
+class BasicSubject:
+    """学科基本信息"""
+    name: str = ""
+    code: str = ""
+    
+@dataclass(eq=False)
+class Subject(BasicSubject):
+    """学科"""
+    id: str = ""
+    standard_score: float = 0
+    status: str = field(default="", repr=False)
+    exam_id: str = ""
+    create_user: Person = field(default_factory=Person, repr=False)
+    _create_timestamp: float = field(default=0, repr=False)
+    create_time = get_property("_create_timestamp")
 
+    def __eq__(self, other):
+        return type(other) == type(self) and other.id == self.id
 
 
 @dataclass(eq=False)
@@ -139,7 +158,7 @@ class Exam:
     name: str = ""
     status: str = ""
     grade_code: str = ""
-    subject_codes: ExtendedList[str] = field(default_factory=ExtendedList, repr=False)
+    subjects: ExtendedList[Subject] = field(default_factory=ExtendedList, repr=False)
     schools: ExtendedList[School] = field(default_factory=ExtendedList, repr=False)
     create_school: School = field(default_factory=School, repr=False)
     create_user: Person = field(default_factory=Person, repr=False)
@@ -160,22 +179,6 @@ class Exam:
         return type(other) == type(self) and other.id == self.id
 
 
-@dataclass(eq=False)
-class Subject:
-    """学科"""
-    id: str = ""
-    name: str = ""
-    code: str = ""
-    standard_score: float = 0
-    status: str = field(default="", repr=False)
-    exam: Exam = field(default_factory=Exam, repr=False)
-    create_user: Person = field(default_factory=Person, repr=False)
-    _create_timestamp: float = field(default=0, repr=False)
-    create_time = get_property("_create_timestamp")
-
-    def __eq__(self, other):
-        return type(other) == type(self) and other.id == self.id
-
 
 @dataclass(eq=False)
 class ExamInfo(Exam):
@@ -184,58 +187,32 @@ class ExamInfo(Exam):
 
 
 @dataclass
-class ExtraRank:
-    """关于分数的额外信息"""
-    rank: int = 0
-    avg_score: float = 0
-    low_score: float = 0
-    high_score: float = 0
-
-    def __bool__(self):
-        return bool(self.rank or self.avg_score or self.low_score or self.high_score)
-
-    def __str__(self):
-        msg = ""
-        if not self:
-            return msg
-        if self.rank:
-            msg += f"排名: {self.rank}\n"
-        if self.avg_score:
-            msg += f"平均分: {self.avg_score}\n"
-        if self.low_score:
-            msg += f"最低分: {self.low_score}\n"
-        if self.high_score:
-            msg += f"最高分: {self.high_score}\n"
-        return msg[:-1]
-
-
-@dataclass
 class SubjectScore:
     """一门学科的成绩"""
     score: float = 0
-    subject: Subject = field(default_factory=Subject)
+    subject: BasicSubject = field(default_factory=Subject)
     person: StuPerson = field(default_factory=StuPerson)
     _create_timestamp: float = field(default=0, repr=False)
     create_time = get_property("_create_timestamp")
-    class_extraRank: ExtraRank = field(default_factory=ExtraRank, compare=False)
-    grade_extraRank: ExtraRank = field(default_factory=ExtraRank, compare=False)
-    exam_extraRank: ExtraRank = field(default_factory=ExtraRank, compare=False)
+    class_rank: int = field(default_factory=int, compare=False)
+    grade_rank: int = field(default_factory=int, compare=False)
+    exam_rank: int = field(default_factory=int, compare=False)
 
-    def __str__(self):
-        msg = f"{self.subject.name}:\n分数: {self.score}\n"
-        if self.class_extraRank:
-            msg += f"班级:\n{self.class_extraRank}\n"
-        if self.grade_extraRank:
-            msg += f"年级:\n{self.grade_extraRank}\n"
-        if self.exam_extraRank:
-            msg += f"联考:\n{self.exam_extraRank}\n"
-        return msg[:-1]
+    # def __str__(self):
+    #     msg = f"{self.subject.name}:\n分数: {self.score}\n"
+    #     if self.class_rank:
+    #         msg += f"班级:\n{self.class_rank}\n"
+    #     if self.grade_rank:
+    #         msg += f"年级:\n{self.grade_rank}\n"
+    #     if self.exam_rank:
+    #         msg += f"联考:\n{self.exam_rank}\n"
+    #     return msg[:-1]
 
 
 class Mark(ExtendedList[SubjectScore]):
     """一场考试的成绩"""
 
-    def __init__(self, l: list = None, exam: Exam = None, person: StuPerson = None):
+    def __init__(self, l: list = list(), exam: Exam = Exam(), person: StuPerson = StuPerson()):
         super().__init__(l)
         self.exam = exam
         self.person = person
@@ -282,12 +259,41 @@ class StuPersonList(ExtendedList):
         """返回第一个学校为school的学生"""
         return self.find(lambda p: p.school == school)
 
+@dataclass
+class HwType:
+    """作业类型, eg: 105 自由出题"""
+    name: str
+    code: int
 
+@dataclass
+class HwAnsPubData:
+    """作业答案发布信息, 如: 2-学生提交后公布"""
+    name: str
+    code: int 
 
-class SubjectTable(Enum):
-    chinese = ""
-    math = ""
-    english = ""
-    physics = "01"
-    chemisry = ""
-    history = ""
+@dataclass
+class Homework:
+    id: str
+    title: str
+    type: HwType
+    begin_time: int
+    end_time: int
+    create_time: int
+    subject: BasicSubject
+    is_allow_makeup: bool  # 是否允许重做
+    class_id: str
+    ansPubData: HwAnsPubData
+
+@dataclass
+class StuHomework(Homework):
+    stu_hwid: str
+    # is_commit: bool # 是否提交作业
+    # is_finished: bool # 是否完成?
+    # is_dued: bool # 是否过期
+
+    # ...
+
+@dataclass
+class HwResource:
+    path: str
+    name: str
