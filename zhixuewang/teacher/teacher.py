@@ -5,9 +5,9 @@ from zhixuewang.models import BasicSubject, Exam, School, StuClass, StuPerson
 from zhixuewang.models import ExtendedList
 from typing import List, Dict, Union
 from zhixuewang.models import Person, Sex, Subject, SubjectScore
-from zhixuewang.teacher.tools import order_by_classId, order_by_schoolId
+from zhixuewang.teacher.tools import get_extra_data, group_by, order_by_classId, order_by_schoolId
 from zhixuewang.teacher.urls import Url
-from zhixuewang.teacher.models import ClassSubjectScores, ExamMarkingProgress, ExtraData, Scores, SubjectMarkingProgress, TeaPerson, TopicMarkingProgress, TopicTeacherMarkingProgress
+from zhixuewang.teacher.models import ClassExtraData, ClassSubjectScores, ExamExtraData, ExamMarkingProgress, ExamSubjectExtraData, ExtraData, RankData, SchoolExtraData, Scores, SubjectMarkingProgress, TeaPerson, TopicMarkingProgress, TopicTeacherMarkingProgress
 import httpx
 
 from zhixuewang.tools.rank import get_rank_map
@@ -147,7 +147,7 @@ class TeacherAccount(TeaPerson):
 
     def __calc_data(self, subjectScores: ExtendedList[SubjectScore]):
         schoolIdMap = order_by_schoolId(subjectScores)
-        extraData = ExtraData(dict(), dict(), dict())
+        extraData = RankData(dict(), dict(), dict())
         all_rankMap = get_rank_map([i.score for i in subjectScores])
         if len(schoolIdMap.keys()) == 1:
             # 单校
@@ -240,10 +240,7 @@ class TeacherAccount(TeaPerson):
         Returns:
             ExtendedList[ExtendedList[SubjectScore]]
         """
-        import time
-        st = time.time()
         scores = asyncio.run(self.__get_scores(exam_id))
-        print(time.time() - st)
         return Scores(scores)
 
     def _parse_marking_progress_data(self, r, subject_id: str):
@@ -337,3 +334,60 @@ class TeacherAccount(TeaPerson):
         exam = self.get_exam_detail(exam_id)
         return asyncio.run(self._get_exam_all_marking_progress(exam))
         
+    def get_exam_extra_data(self, scores: Scores) -> ExamExtraData:
+        """获取考试额外数据
+        Args:
+            scores (Scores): 分数(可由get_scores获取)
+
+        Returns:
+            ExtendedList[ExtendedList[SubjectScore]]
+        """
+        map_subject_scores: Dict[str, List[SubjectScore]] = {}
+        for score in scores:
+            for subject_score in score:
+                if subject_score.subject.id not in map_subject_scores:
+                    map_subject_scores[subject_score.subject.id] = [subject_score]
+                else:
+                    map_subject_scores[subject_score.subject.id].append(subject_score)
+        subjects_extra_data: List[ExamSubjectExtraData] = []
+        for subject_scores in map_subject_scores.values():
+            subject = subject_scores[0].subject
+            # 班级
+            class_datas = group_by(subject_scores, lambda t: t.person.clazz.id)
+            class_extra_datas = []
+            for class_data in class_datas.values():
+                extra_data = get_extra_data(class_data, subject.standard_score)
+                class_extra_datas.append(ClassExtraData(
+                    extra_data.avg_score,
+                    extra_data.medium_score,
+                    extra_data.pass_rate,
+                    extra_data.excellent_rate,
+                    extra_data.perfect_rate,
+                    extra_data.var,
+                    class_data[0].person.clazz.id,
+                    class_data[0].person.clazz.name
+                ))
+            
+            # 学校
+            school_datas = group_by(subject_scores, lambda t: t.person.clazz.school.id)
+            school_extra_datas = []
+            for school_data in school_datas.values():
+                extra_data = get_extra_data(school_data, subject.standard_score)
+                school_extra_datas.append(SchoolExtraData(
+                    extra_data.avg_score,
+                    extra_data.medium_score,
+                    extra_data.pass_rate,
+                    extra_data.excellent_rate,
+                    extra_data.perfect_rate,
+                    extra_data.var,
+                    school_data[0].person.clazz.school.id,
+                    school_data[0].person.clazz.school.name
+                ))
+            
+            subjects_extra_data.append(ExamSubjectExtraData(
+                subject=subject,
+                class_extra_data=ExtendedList(class_extra_datas),
+                school_extra_data=ExtendedList(school_extra_datas),
+                exam_extra_data=get_extra_data(subject_scores, subject.standard_score)
+            ))
+        return ExamExtraData(subjects_extra_data)
