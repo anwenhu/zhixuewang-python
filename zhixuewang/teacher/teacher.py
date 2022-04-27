@@ -7,7 +7,7 @@ from typing import List, Dict, Union
 from zhixuewang.models import Person, Sex, Subject, SubjectScore
 from zhixuewang.teacher.tools import order_by_classId, order_by_schoolId
 from zhixuewang.teacher.urls import Url
-from zhixuewang.teacher.models import ClassScores, ClassSubjectScores, ExamMarkingProgress, ExtraData, SubjectMarkingProgress, TeaPerson, TopicMarkingProgress, TopicTeacherMarkingProgress
+from zhixuewang.teacher.models import ClassSubjectScores, ExamMarkingProgress, ExtraData, Scores, SubjectMarkingProgress, TeaPerson, TopicMarkingProgress, TopicTeacherMarkingProgress
 import httpx
 
 from zhixuewang.tools.rank import get_rank_map
@@ -231,7 +231,7 @@ class TeacherAccount(TeaPerson):
         return scores
 
 
-    def get_scores(self, exam_id: str) -> ExtendedList[ExtendedList[SubjectScore]]:
+    def get_scores(self, exam_id: str) -> Scores:
         """获取所有分数
 
         Args:
@@ -240,8 +240,11 @@ class TeacherAccount(TeaPerson):
         Returns:
             ExtendedList[ExtendedList[SubjectScore]]
         """
+        import time
+        st = time.time()
         scores = asyncio.run(self.__get_scores(exam_id))
-        return scores
+        print(time.time() - st)
+        return Scores(scores)
 
     def _parse_marking_progress_data(self, r, subject_id: str):
         data = r.json()["message"]

@@ -142,7 +142,7 @@ class Subject(BasicSubject):
     id: str = ""
     standard_score: float = 0
     status: str = field(default="", repr=False)
-    exam_id: str = ""
+    exam_id: str = field(default="", repr=False)
     create_user: Person = field(default_factory=Person, repr=False)
     _create_timestamp: float = field(default=0, repr=False)
     create_time = get_property("_create_timestamp")
@@ -190,23 +190,13 @@ class ExamInfo(Exam):
 class SubjectScore:
     """一门学科的成绩"""
     score: float = 0
-    subject: BasicSubject = field(default_factory=Subject)
+    subject: Subject = field(default_factory=Subject)
     person: StuPerson = field(default_factory=StuPerson)
     _create_timestamp: float = field(default=0, repr=False)
     create_time = get_property("_create_timestamp")
     class_rank: int = field(default_factory=int, compare=False)
     grade_rank: int = field(default_factory=int, compare=False)
     exam_rank: int = field(default_factory=int, compare=False)
-
-    # def __str__(self):
-    #     msg = f"{self.subject.name}:\n分数: {self.score}\n"
-    #     if self.class_rank:
-    #         msg += f"班级:\n{self.class_rank}\n"
-    #     if self.grade_rank:
-    #         msg += f"年级:\n{self.grade_rank}\n"
-    #     if self.exam_rank:
-    #         msg += f"联考:\n{self.exam_rank}\n"
-    #     return msg[:-1]
 
 
 class Mark(ExtendedList[SubjectScore]):
