@@ -16,10 +16,10 @@ def _(self):
     return msg
 
 
-def send_mark(mark):
-    r = requests.get(f"https://sc.ftqq.com/{desp}.send",
+def send_mark(mark): #此处通过推送服务发送消息，需要自行注册（已更新到新版API）
+    r = requests.get(f"https://sctapi.ftqq.com/{desp}.send",
                      params={
-                         "text": "智学网出成绩了！",
+                         "title": "智学网出成绩了！",
                          "desp": str(mark)
                      })
     if not r.ok:
@@ -28,7 +28,8 @@ def send_mark(mark):
 
 
 if __name__ == "__main__":
-    with open("user", "r", encoding="utf8") as f:
+    
+    with open("user", "r", encoding="utf8") as f: #第一行为账号，第二行为密码，第三行为推送sendkey
         username = f.readline().strip()
         password = f.readline().strip()
         desp = f.readline().strip()

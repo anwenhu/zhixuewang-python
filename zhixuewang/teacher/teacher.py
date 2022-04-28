@@ -9,6 +9,7 @@ from zhixuewang.teacher.tools import get_extra_data, group_by, order_by_classId,
 from zhixuewang.teacher.urls import Url
 from zhixuewang.teacher.models import ClassExtraData, ClassSubjectScores, ExamExtraData, ExamMarkingProgress, ExamSubjectExtraData, ExtraData, RankData, SchoolExtraData, Scores, SubjectMarkingProgress, TeaPerson, TopicMarkingProgress, TopicTeacherMarkingProgress
 import httpx
+from zhixuewang import zxw
 
 from zhixuewang.tools.rank import get_rank_map
 
@@ -58,7 +59,45 @@ class TeacherAccount(TeaPerson):
         s = asyncio.run(data)
         print(s)
         return s
+
+    def __rewrite_file(self, file, data):
+        with open(file, 'w', encoding='UTF-8') as f:
+            f.write(data)
+            f.close()
+
+    def __replace(self, file, old_content, new_content): #替换文件内容函数
+        content = self.__read_file(file)
+        content = content.replace(old_content, new_content)
+        self.__rewrite_file(file, content)
+
+    def __read_file(self, file):
+        with open(file, encoding='UTF-8') as f:
+            read_all = f.read()
+            f.close()
+        return read_all
+
+    def get_original_paper(self, 
+        userId: str, paperId: str, 
+        saveToPath: str):
+        """
+        获得原卷
+        Args:
+            teacherAccount系列参数为教师账号
+            userId为需要查询原卷的userId
+            paperId为需要查询的学科ID(topicSetId)
+            saveToPath为原卷保存位置（html文件），精确到文件名
+        Return:
+            正常会返回'OK'
+        """
+        base = f"https://www.zhixue.com/classreport/class/student/checksheet/?userId=" + userId + "&paperId=" + paperId
+        session = self._session
+        data = session.get(base)
+        with open(saveToPath, encoding="utf-8", mode="w+") as fhandle:
+            fhandle.writelines(data.text)
+        self.__replace(saveToPath, "//static.zhixue.com", "https://static.zhixue.com") #替换html内容，让文件可以正常显示
+        return "OK"
         
+
     def get_exam_subjects(self, exam_id: str) -> ExtendedList[Subject]:
         r = self._session.get(Url.GET_EXAM_SUBJECTS_URL, params={
             "examId": exam_id
