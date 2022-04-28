@@ -1,24 +1,30 @@
-from ast import Str
 import asyncio
 import json
-from zhixuewang.models import BasicSubject, Exam, School, StuClass, StuPerson
-from zhixuewang.models import ExtendedList
-from typing import List, Dict, Union
-from zhixuewang.models import Person, Sex, Subject, SubjectScore
-from zhixuewang.teacher.tools import get_extra_data, group_by, order_by_classId, order_by_schoolId
-from zhixuewang.teacher.urls import Url
-from zhixuewang.teacher.models import ClassExtraData, ClassSubjectScores, ExamExtraData, ExamMarkingProgress, ExamSubjectExtraData, ExtraData, RankData, SchoolExtraData, Scores, SubjectMarkingProgress, TeaPerson, TopicMarkingProgress, TopicTeacherMarkingProgress
-import httpx
+from typing import Dict, List
 
+import httpx
+from zhixuewang.account import Account
+from zhixuewang.models import (Exam, ExtendedList, Role,
+                               School, Sex, StuClass, StuPerson, Subject,
+                               SubjectScore)
+from zhixuewang.teacher.models import (ClassExtraData,
+                                       ExamExtraData, ExamMarkingProgress,
+                                       ExamSubjectExtraData,
+                                       RankData, SchoolExtraData, Scores,
+                                       SubjectMarkingProgress, TeaPerson,
+                                       TopicMarkingProgress,
+                                       TopicTeacherMarkingProgress)
+from zhixuewang.teacher.tools import (get_extra_data, group_by,
+                                      order_by_classId, order_by_schoolId)
+from zhixuewang.teacher.urls import Url
 from zhixuewang.tools.rank import get_rank_map
 
 
-class TeacherAccount(TeaPerson):
+class TeacherAccount(Account, TeaPerson):
     """老师账号"""
 
     def __init__(self, session):
-        super().__init__()
-        self._session = session
+        super().__init__(session, Role.teacher)
         self._token = None
 
     def set_base_info(self):
@@ -54,12 +60,11 @@ class TeacherAccount(TeaPerson):
             return classes
     
     def get_school_exam_classes(self, school_id: str, subject_id: str) -> List[StuClass]:
-        data = self.__get_school_exam_classes(school_id, subject_id)
-        s = asyncio.run(data)
-        print(s)
-        return s
+        self.update_login_status()
+        return asyncio.run(self.__get_school_exam_classes(school_id, subject_id))
         
     def get_exam_subjects(self, exam_id: str) -> ExtendedList[Subject]:
+        self.update_login_status()
         r = self._session.get(Url.GET_EXAM_SUBJECTS_URL, params={
             "examId": exam_id
         })
@@ -77,6 +82,7 @@ class TeacherAccount(TeaPerson):
         return ExtendedList(sorted(subjects, key=lambda x: x.code, reverse=False))
 
     def get_exam_detail(self, exam_id: str) -> Exam:
+        self.update_login_status()
         r = self._session.post(Url.GET_EXAM_DETAIL_URL, data={
             "examId": exam_id
         })

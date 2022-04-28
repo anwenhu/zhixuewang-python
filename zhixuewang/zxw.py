@@ -1,16 +1,19 @@
 import json
 import requests
-from zhixuewang.exceptions import UserNotFoundError, UserOrPassError, LoginError, RoleError
+from zhixuewang.exceptions import UserNotFoundError, UserOrPassError, LoginError
+from zhixuewang.tools.session import get_basic_session
 from zhixuewang.urls import Url
 from zhixuewang.models import Person
 from zhixuewang.student import StudentAccount
 from zhixuewang.teacher import TeacherAccount
 
 
+
+
 def get_session(username: str, password: str, _type: str = "auto") -> requests.Session:
     """通过用户名和密码获取session
 
-    默认可支持zx和zxt开头的账号, 准考证号以及手机号
+    默认可支持zx, zxt和tch开头的账号, 准考证号以及手机号
     可通过改变type为id来支持使用用户id
 
     Args:
@@ -26,12 +29,9 @@ def get_session(username: str, password: str, _type: str = "auto") -> requests.S
     Returns:
         requests.session:
     """
-    session = requests.Session()
-    session.headers[
-        "User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1"
+    session = get_basic_session()
     r = session.get(Url.SSO_URL)
-    msg = r.text
-    json_obj = json.loads(msg.strip().replace("\\", "").replace("'", "")[1:-1])
+    json_obj = json.loads(r.text.strip().replace("\\", "").replace("'", "")[1:-1])
     if json_obj["code"] != 1000:
         raise LoginError(json_obj["data"])
     lt = json_obj["data"]["lt"]
@@ -51,8 +51,7 @@ def get_session(username: str, password: str, _type: str = "auto") -> requests.S
                         "username": username,
                         "password": password
                     })
-    msg = r.text
-    json_obj = json.loads(msg.strip().replace("\\", "").replace("'", "")[1:-1])
+    json_obj = json.loads(r.text.strip().replace("\\", "").replace("'", "")[1:-1])
     if json_obj["code"] != 1001:
         if json_obj["code"] == 1002:
             raise UserOrPassError()
@@ -206,6 +205,7 @@ def login_teacher(username: str, password: str) -> TeacherAccount:
     session = get_session(username, password)
     teacher = TeacherAccount(session)
     return teacher.set_base_info()
+
 
 
 def login_id(user_id: str, password: str) -> Person:

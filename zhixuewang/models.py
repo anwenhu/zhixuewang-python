@@ -1,8 +1,16 @@
 from enum import Enum
-from pickletools import long1
 from typing import List, Callable, Union, TypeVar
 from dataclasses import dataclass, field
 from zhixuewang.tools.datetime_tool import get_property
+
+
+
+class Role(Enum):
+    student = 0,
+    teacher = 1
+
+
+
 
 T = TypeVar("T")
 
