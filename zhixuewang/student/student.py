@@ -7,7 +7,7 @@ from typing import List, Tuple, Union
 from zhixuewang.models import (BasicSubject, ExtendedList, Exam, Homework, HwAnsPubData, HwResource, HwType, Mark, StuHomework, Subject, SubjectScore,
                                StuClass, School, Sex, Grade, Phase, ExamInfo,
                                StuPerson, StuPersonList)
-from zhixuewang.exceptions import UserDefunctError, PageConnectionError, PageInformationError
+from zhixuewang.exceptions import GetOriginalError, UserDefunctError, PageConnectionError, PageInformationError
 from zhixuewang.student.urls import Url
 from json import JSONDecodeError
 
@@ -349,6 +349,8 @@ class StudentAccount(StuPerson):
                 f"__get_original中出错, 状态码为{r.status_code}")
         try:
             json_data = r.json()
+            if json_data["result"] == "":
+                raise GetOriginalError(json_data["errorCode"], json_data["errorInfo"])
             image_urls = []
             for image_url in json.loads(json_data["result"]["sheetImages"]):
                 image_urls.append(image_url)
