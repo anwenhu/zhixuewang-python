@@ -62,7 +62,45 @@ class TeacherAccount(Account, TeaPerson):
     def get_school_exam_classes(self, school_id: str, subject_id: str) -> List[StuClass]:
         self.update_login_status()
         return asyncio.run(self.__get_school_exam_classes(school_id, subject_id))
+
+    def __rewrite_file(self, file, data):
+        with open(file, 'w', encoding='UTF-8') as f:
+            f.write(data)
+            f.close()
+
+    def __replace(self, file, old_content, new_content): #替换文件内容函数
+        content = self.__read_file(file)
+        content = content.replace(old_content, new_content)
+        self.__rewrite_file(file, content)
+
+    def __read_file(self, file):
+        with open(file, encoding='UTF-8') as f:
+            read_all = f.read()
+            f.close()
+        return read_all
+
+    def get_original_paper(self, 
+        userId: str, paperId: str, 
+        saveToPath: str):
+        """
+        获得原卷
+        Args:
+            teacherAccount系列参数为教师账号
+            userId为需要查询原卷的userId
+            paperId为需要查询的学科ID(topicSetId)
+            saveToPath为原卷保存位置（html文件），精确到文件名
+        Return:
+            正常会返回'OK'
+        """
+        base = f"https://www.zhixue.com/classreport/class/student/checksheet/?userId=" + userId + "&paperId=" + paperId
+        session = self._session
+        data = session.get(base)
+        with open(saveToPath, encoding="utf-8", mode="w+") as fhandle:
+            fhandle.writelines(data.text)
+        self.__replace(saveToPath, "//static.zhixue.com", "https://static.zhixue.com") #替换html内容，让文件可以正常显示
+        return "OK"
         
+
     def get_exam_subjects(self, exam_id: str) -> ExtendedList[Subject]:
         self.update_login_status()
         r = self._session.get(Url.GET_EXAM_SUBJECTS_URL, params={
