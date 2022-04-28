@@ -133,7 +133,6 @@ class Scores(ExtendedList[PersonScores]):
     def __init__(self, l: List[ExtendedList[SubjectScore]]):
         self.person_map: Dict[str, PersonScores] = {}
         self.name_id_map: Dict[str, List[str]] = {}
-        i = 0
         for each_subject in l:
             for each in each_subject:
                 if each.person.id not in self.person_map: # 可能有人没考第一科
