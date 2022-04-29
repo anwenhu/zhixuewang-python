@@ -4,8 +4,7 @@ import time
 import uuid
 from enum import IntEnum
 from typing import List, Tuple, Union
-from zhixuewang.account import Account
-from zhixuewang.models import (BasicSubject, ExtendedList, Exam, Homework, HwAnsPubData, HwResource, HwType, Mark, Role, StuHomework, Subject, SubjectScore,
+from zhixuewang.models import (Account, BasicSubject, ExtendedList, Exam, Homework, HwAnsPubData, HwResource, HwType, Mark, Role, StuHomework, Subject, SubjectScore,
                                StuClass, School, Sex, Grade, Phase, ExamInfo,
                                StuPerson, StuPersonList)
 from zhixuewang.exceptions import GetOriginalError, UserDefunctError, PageConnectionError, PageInformationError
@@ -35,7 +34,6 @@ class StudentAccount(Account, StuPerson):
 
     def __init__(self, session):
         super().__init__(session, Role.student)
-        self.username = ""
         self._token_timestamp = ["", 0]
 
     def _get_auth_header(self) -> dict:

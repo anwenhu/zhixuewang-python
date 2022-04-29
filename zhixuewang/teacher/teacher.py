@@ -3,8 +3,7 @@ import json
 from typing import Dict, List
 
 import httpx
-from zhixuewang.account import Account
-from zhixuewang.models import (Exam, ExtendedList, Role,
+from zhixuewang.models import (Account, Exam, ExtendedList, Role,
                                School, Sex, StuClass, StuPerson, Subject,
                                SubjectScore)
 from zhixuewang.teacher.models import (ClassExtraData,

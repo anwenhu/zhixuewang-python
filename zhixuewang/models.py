@@ -1,14 +1,48 @@
+import base64
 from enum import Enum
+import pickle
 from typing import List, Callable, Union, TypeVar
 from dataclasses import dataclass, field
+from zhixuewang.session import get_session
 from zhixuewang.tools.datetime_tool import get_property
-
+from zhixuewang.tools.cookies import get_username_from_session
+from zhixuewang.tools.cookies import get_password_from_session
+from zhixuewang.urls import Url
 
 
 class Role(Enum):
     student = 0,
     teacher = 1
 
+
+
+@dataclass
+class AccountData:
+    username: str
+    encoded_password: str
+    role: Role
+
+class Account:
+    def __init__(self, session, role: Role) -> None:
+        self._session = session
+        self.role = role
+        self.username = get_username_from_session(session)
+
+    def save_account(self, path: str = "user.data"):
+        with open(path, "wb") as f:
+            data = pickle.dumps(AccountData(self.username, get_password_from_session(self._session), self.role))
+            f.write(base64.b64encode(data))
+    
+
+    def update_login_status(self):
+        """更新登录状态. 如果session过期自动重新获取"""
+        r = self._session.get(Url.GET_LOGIN_STATE)
+        data = r.json()
+        if data["result"] == "success":
+            return
+        # session过期
+        password = get_password_from_session(self._session)
+        self._session = get_session(self.username, password)
 
 
 
