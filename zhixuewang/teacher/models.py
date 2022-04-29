@@ -9,6 +9,7 @@ from zhixuewang.tools.rank import get_rank_map
 class TeacherRole(Enum):
     TEACHER = "老师"
     HEADMASTER = "校长"
+    GRADE_DIRECTER = "年级组长"
 
     def __str__(self):
         return self._value_
