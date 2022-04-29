@@ -187,10 +187,9 @@ class TopicTeacherMarkingProgress:
     teacher_code: str
     complete_count: int
     uncomplete_count: int
-    complete_precent: float = 0
     
-    @staticmethod
-    def get_complete_precent(self) -> float:
+    @property
+    def complete_precent(self) -> float:
         if self.complete_count == 0 and self.uncomplete_count == 0:
             return 100
         return (self.complete_count / (self.complete_count + self.uncomplete_count)) * 100
