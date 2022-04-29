@@ -232,7 +232,7 @@ class TeacherAccount(Account, TeaPerson):
             progress_data.append(topic_progress_data)
         return progress_data
 
-    def get_marking_progress(self, subject_id: str, school_id: str = ""):
+    def get_marking_progress(self, subject_id: str, school_id: str = "") -> List[TopicTeacherMarkingProgress]:
         r = self._session.post(Url.GET_MARKING_PROGRESS_URL, data={
             "progressParam": json.dumps({
                 "markingPaperId": subject_id,
@@ -248,6 +248,7 @@ class TeacherAccount(Account, TeaPerson):
                 "examId": ""
             })
         })
+        # return r.json()
         return self._parse_marking_progress_data(r, subject_id)
 
     async def _get_marking_progress_async(self, subject_id: str, school_id: str):
