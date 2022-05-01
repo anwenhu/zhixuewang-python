@@ -6,3 +6,4 @@ class Url:
     SSO_URL = f"https://sso.zhixue.com/sso_alpha/login?service={SERVICE_URL}"
     TEST_PASSWORD_URL = f"{BASE_URL}/weakPwdLogin/?from=web_login"
     TEST_URL = f"{BASE_URL}/container/container/teacher/teacherAccountNew"
+    GET_LOGIN_STATE = f"{BASE_URL}/loginState/"

@@ -16,5 +16,11 @@ def _(self):
 
 
 if __name__ == "__main__":
-    zxw = login_student("zx39813588", "SYJ39813588")
-    print(zxw.get_self_mark())
+    #请修改如下字段为你的账号和密码
+    user = "114514"
+    password = "1919810"
+    if user == "114514" or password == "1919810":
+        print("请修改源代码第20,21行，改为自己的账号和密码！")
+    else:
+        zxw = login_student(user, password)
+        print(zxw.get_self_mark())

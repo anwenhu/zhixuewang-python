@@ -2,13 +2,14 @@ from dataclasses import field, dataclass
 from enum import Enum
 from typing import Dict, List, Union
 import copy
-from zhixuewang.models import Exam, ExtendedList, Person, School, StuClass, Sex, StuPerson, Subject, SubjectScore
+from zhixuewang.models import BasicSubject, Exam, ExtendedList, Person, School, StuClass, Sex, StuPerson, Subject, SubjectScore
 from zhixuewang.tools.rank import get_rank_map
 
 
 class TeacherRole(Enum):
     TEACHER = "老师"
     HEADMASTER = "校长"
+    GRADE_DIRECTER = "年级组长"
 
     def __str__(self):
         return self._value_
@@ -133,7 +134,6 @@ class Scores(ExtendedList[PersonScores]):
     def __init__(self, l: List[ExtendedList[SubjectScore]]):
         self.person_map: Dict[str, PersonScores] = {}
         self.name_id_map: Dict[str, List[str]] = {}
-        i = 0
         for each_subject in l:
             for each in each_subject:
                 if each.person.id not in self.person_map: # 可能有人没考第一科
@@ -172,7 +172,7 @@ class Scores(ExtendedList[PersonScores]):
 
 # 单科 班级分类
 @dataclass()
-class ExtraData:
+class RankData:
     schoolRankMap: Dict[str, Dict[float, int]]
     # schoolId => classID => score => rank
     schoolsRankMap: Dict[str, Dict[str, Dict[float, int]]]
@@ -188,10 +188,9 @@ class TopicTeacherMarkingProgress:
     teacher_code: str
     complete_count: int
     uncomplete_count: int
-    complete_precent: float = 0
     
-    @staticmethod
-    def get_complete_precent(self) -> float:
+    @property
+    def complete_precent(self) -> float:
         if self.complete_count == 0 and self.uncomplete_count == 0:
             return 100
         return (self.complete_count / (self.complete_count + self.uncomplete_count)) * 100
@@ -213,3 +212,32 @@ class SubjectMarkingProgress:
 class ExamMarkingProgress:
     exam: Exam
     markingProgresses: List[SubjectMarkingProgress] = field(default_factory=list)
+
+@dataclass
+class ExtraData:
+    avg_score: float
+    medium_score: float # 中位数
+    pass_rate: float # 及格率
+    excellent_rate: float # 优秀率(85%以上)
+    perfect_rate: float # 满分率
+    var: float # 方差
+
+@dataclass
+class ClassExtraData(ExtraData):
+    class_id: str
+    class_name: str
+
+@dataclass
+class SchoolExtraData(ExtraData):
+    school_id: str
+    school_name: str
+
+@dataclass
+class ExamSubjectExtraData:
+    subject: Subject
+    class_extra_data: ExtendedList[ClassExtraData]
+    school_extra_data: ExtendedList[SchoolExtraData]
+    exam_extra_data: ExtraData
+
+class ExamExtraData(List[ExamSubjectExtraData]):
+    pass

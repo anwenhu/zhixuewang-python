@@ -1,51 +1,44 @@
-from zhixuewang import login, login_student, login_student_id
+from zhixuewang import login, login_student, login_student_id, load_account
 # from zhixuewang.student import FriendMsg
-username, password, user_id, check_exam_name, check_exam_id, check_chinese_id, check_math_id, check_english_id, check_chinese_score, check_math_score, check_english_score = "", "", "", "", "", "", "", "", "", "", ""
-
+username = "None"
+password = "None"
 
 
 def setup_module():
-    global username, password, user_id, check_exam_name, check_exam_id, check_chinese_id, check_math_id, check_english_id, check_chinese_score, check_math_score, check_english_score
     with open("user", "r", encoding="utf8") as f:
-        username, password, user_id, check_exam_name, check_exam_id, check_chinese_id, check_math_id, check_english_id, check_chinese_score, check_math_score, check_english_score = f.readline().strip().split(" ")
+        global username, password
+        username, password = f.read().split(",")
+
 class TestStudent:
     def setup_class(self):
         self.zxw = login_student(username, password)
 
-    def test_login(self):
-        assert login(username, password).id == user_id
-
     def test_login_student(self):
-        assert login_student(username, password).id == user_id
+        assert login_student(username, password).code == username
 
     def test_login_student_id(self):
-        login_student_id(user_id, password)
+        pass
 
     def test_get_exams(self):
         assert self.zxw.get_exams()
 
     def test_get_exam(self):
         assert self.zxw.get_exam()
-        assert self.zxw.get_exam(check_exam_name).id == check_exam_id
-        assert self.zxw.get_exam(check_exam_id).name == check_exam_name
 
     def test_get_latest_exam(self):
         assert self.zxw.get_latest_exam()
 
     def test_get_self_mark(self):
         assert self.zxw.get_self_mark()
-        assert self.zxw.get_self_mark(check_exam_name).find(lambda x: x.subject.name == "语文").score == int(check_chinese_score)
-        assert self.zxw.get_self_mark(check_exam_id).find(lambda x: x.subject.name == "数学").score == int(check_math_score)
 
     def test_get_subjects(self):
         assert self.zxw.get_subjects()
 
     def test_get_subject(self):
-        subject = self.zxw.get_subject("语文", check_exam_name)
-        assert subject.name == "语文" and subject.exam_id == check_exam_id
+        assert self.zxw.get_subject("语文").name == "语文"
 
     def test_get_original(self):
-        assert self.zxw.get_original("语文", check_exam_id)
+        assert self.zxw.get_original("语文")
 
     def test_get_clazzs(self):
         for clazz in self.zxw.get_clazzs():

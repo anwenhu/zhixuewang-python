@@ -1,8 +1,50 @@
+import base64
 from enum import Enum
-from pickletools import long1
+import pickle
 from typing import List, Callable, Union, TypeVar
 from dataclasses import dataclass, field
+from zhixuewang.session import get_session
 from zhixuewang.tools.datetime_tool import get_property
+from zhixuewang.tools.cookies import get_username_from_session
+from zhixuewang.tools.cookies import get_password_from_session
+from zhixuewang.urls import Url
+
+
+class Role(Enum):
+    student = 0,
+    teacher = 1
+
+
+
+@dataclass
+class AccountData:
+    username: str
+    encoded_password: str
+    role: Role
+
+class Account:
+    def __init__(self, session, role: Role) -> None:
+        self._session = session
+        self.role = role
+        self.username = get_username_from_session(session)
+
+    def save_account(self, path: str = "user.data"):
+        with open(path, "wb") as f:
+            data = pickle.dumps(AccountData(self.username, get_password_from_session(self._session), self.role))
+            f.write(base64.b64encode(data))
+    
+
+    def update_login_status(self):
+        """更新登录状态. 如果session过期自动重新获取"""
+        r = self._session.get(Url.GET_LOGIN_STATE)
+        data = r.json()
+        if data["result"] == "success":
+            return
+        # session过期
+        password = get_password_from_session(self._session)
+        self._session = get_session(self.username, password)
+
+
 
 T = TypeVar("T")
 
@@ -198,6 +240,15 @@ class SubjectScore:
     grade_rank: int = field(default_factory=int, compare=False)
     exam_rank: int = field(default_factory=int, compare=False)
 
+    def __str__(self) -> str:
+        if self.person.id == "": #mark
+            data = f"{self.subject.name}: {self.score}"
+            if self.class_rank != 0:
+                data += f" (班级第{self.class_rank}名)"
+            return data
+        return self.__repr__()
+
+
 
 class Mark(ExtendedList[SubjectScore]):
     """一场考试的成绩"""
@@ -287,3 +338,24 @@ class StuHomework(Homework):
 class HwResource:
     path: str
     name: str
+
+@dataclass
+class ErrorBookTopic:
+    analysis_html: str
+    answer_html: str
+    answer_type: str
+    is_correct: bool
+    class_score_rate: float
+    content_html: str
+    difficulty: int
+    dis_title_number: str
+    paper_id: str
+    subject_name: str
+    score: float
+    standard_answer: str # 网址
+    standard_score: float
+    subject_id: str
+    topic_img_url: str # 好看的题目
+    topic_source_paper_name: str
+    image_answer: List[str] # 你的答案
+    topic_analysis_img_url: str

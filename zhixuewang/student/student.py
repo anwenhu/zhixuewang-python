@@ -1,13 +1,14 @@
 import hashlib
 import json
+import math
 import time
 import uuid
 from enum import IntEnum
 from typing import List, Tuple, Union
-from zhixuewang.models import (BasicSubject, ExtendedList, Exam, Homework, HwAnsPubData, HwResource, HwType, Mark, StuHomework, Subject, SubjectScore,
+from zhixuewang.models import (Account, BasicSubject, ErrorBookTopic, ExtendedList, Exam, Homework, HwAnsPubData, HwResource, HwType, Mark, Role, StuHomework, Subject, SubjectScore,
                                StuClass, School, Sex, Grade, Phase, ExamInfo,
                                StuPerson, StuPersonList)
-from zhixuewang.exceptions import UserDefunctError, PageConnectionError, PageInformationError
+from zhixuewang.exceptions import GetOriginalError, UserDefunctError, PageConnectionError, PageInformationError
 from zhixuewang.student.urls import Url
 from json import JSONDecodeError
 
@@ -29,23 +30,21 @@ class FriendMsg(IntEnum):
     UNDEFINED = 202  # 未知错误
 
 
-class StudentAccount(StuPerson):
+class StudentAccount(Account, StuPerson):
     """学生账号"""
 
     def __init__(self, session):
-        super().__init__()
-        self._session = session
-        self.username = ""
-        self.role = "student"
-        self.token_timestamp = ["", 0]
+        super().__init__(session, Role.student)
+        self._token_timestamp = ["", 0]
 
     def _get_auth_header(self) -> dict:
         """获取header"""
+        self.update_login_status()
         auth_guid = str(uuid.uuid4())
         auth_time_stamp = str(int(time.time() * 1000))
         auth_token = _md5_encode(auth_guid + auth_time_stamp +
                                  "iflytek!@#123student")
-        token, cur_time = self.token_timestamp
+        token, cur_time = self._token_timestamp
         if token and time.time() - cur_time < 600:  # 判断token是否过期
             return {
                 "authbizcode": "0001",
@@ -67,15 +66,16 @@ class StudentAccount(StuPerson):
             if r.json()["errorCode"] != 0:
                 raise PageInformationError(
                     f"_get_auth_header出错, 错误信息为{r.json()['errorInfo']}")
-            self.token_timestamp[0] = r.json()["result"]
+            self._token_timestamp[0] = r.json()["result"]
         except (JSONDecodeError, KeyError) as e:
             raise PageInformationError(
                 f"_get_auth_header中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
-        self.token_timestamp[1] = time.time()
+        self._token_timestamp[1] = time.time()
         return self._get_auth_header()
 
     def set_base_info(self):
         """设置账户基本信息, 如用户id, 姓名, 学校等"""
+        self.update_login_status()
         r = self._session.get(Url.INFO_URL)
         if not r.ok:
             raise PageConnectionError(f"set_base_info出错, 状态码为{r.status_code}")
@@ -138,11 +138,12 @@ class StudentAccount(StuPerson):
 
     def get_page_exam(self, page_index: int) -> Tuple[ExtendedList[Exam], bool]:
         """获取指定页数的考试列表"""
+        self.update_login_status()
         exams: ExtendedList[Exam] = ExtendedList()
         r = self._session.get(Url.GET_EXAM_URL,
                               params={
                                   "pageIndex": page_index,
-                                  "pageSize": 10
+                                  "pageSize": 2
                               },
                               headers=self._get_auth_header())
         if not r.ok:
@@ -165,6 +166,7 @@ class StudentAccount(StuPerson):
 
     def get_latest_exam(self) -> ExamInfo:
         """获取最新考试"""
+        self.update_login_status()
         r = self._session.get(Url.GET_RECENT_EXAM_URL,
                               headers=self._get_auth_header())
         if not r.ok:
@@ -209,6 +211,7 @@ class StudentAccount(StuPerson):
         return exams
 
     def __get_self_mark(self, exam: Exam, has_total_score: bool) -> Mark:
+        self.update_login_status()
         mark = Mark(exam=exam, person=self)
         r = self._session.get(Url.GET_MARK_URL,
                               params={"examId": exam.id},
@@ -251,6 +254,7 @@ class StudentAccount(StuPerson):
                 )
                 # subject_score.create_time = 0
                 mark.append(subject_score)
+            self._set_exam_rank(mark)
         except (JSONDecodeError, KeyError) as e:
             raise PageInformationError(
                 f"__get_self_mark中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
@@ -274,6 +278,7 @@ class StudentAccount(StuPerson):
         return self.__get_self_mark(exam, has_total_score)
 
     def __get_subjects(self, exam: Exam) -> ExtendedList[Subject]:
+        self.update_login_status()
         subjects: ExtendedList[Subject] = ExtendedList()
         r = self._session.get(Url.GET_SUBJECT_URL,
                               params={"examId": exam.id},
@@ -310,6 +315,7 @@ class StudentAccount(StuPerson):
         return self.__get_subjects(exam)
 
     def __get_subject(self, exam: Exam, subject_data: str):
+        self.update_login_status()
         subjects = self.get_subjects(exam)
         if _check_is_uuid(subject_data):  # 判断为id还是名称
             subject = subjects.find_by_id(subject_data)  # 为id
@@ -338,6 +344,7 @@ class StudentAccount(StuPerson):
         return subject if subject is not None else Subject()
 
     def __get_original(self, subject_id: str, exam_id: str) -> List[str]:
+        self.update_login_status()
         r = self._session.get(Url.GET_ORIGINAL_URL,
                               params={
                                   "examId": exam_id,
@@ -349,6 +356,8 @@ class StudentAccount(StuPerson):
                 f"__get_original中出错, 状态码为{r.status_code}")
         try:
             json_data = r.json()
+            if json_data["result"] == "":
+                raise GetOriginalError(json_data["errorCode"], json_data["errorInfo"])
             image_urls = []
             for image_url in json.loads(json_data["result"]["sheetImages"]):
                 image_urls.append(image_url)
@@ -418,6 +427,7 @@ class StudentAccount(StuPerson):
         return clazz
 
     def __get_classmates(self, clazz_id: str) -> ExtendedList[StuPerson]:
+        self.update_login_status()
         classmates = StuPersonList()
         r = self._session.get(Url.GET_CLASSMATES_URL,
                               params={
@@ -469,6 +479,7 @@ class StudentAccount(StuPerson):
 
     def get_friends(self) -> ExtendedList[StuPerson]:
         """获取朋友列表"""
+        self.update_login_status()
         friends = StuPersonList()
         r = self._session.get(Url.GET_FRIEND_URL,
                               params={"d": int(time.time())})
@@ -493,6 +504,7 @@ class StudentAccount(StuPerson):
         Returns:
             FriendMsg
         """
+        self.update_login_status()
         user_id = friend
         if isinstance(friend, StuPerson):
             user_id = friend.id
@@ -521,6 +533,7 @@ class StudentAccount(StuPerson):
         Returns:
             bool: True 表示删除成功, False 表示删除失败
         """
+        self.update_login_status()
         user_id = friend
         if isinstance(friend, StuPerson):
             user_id = friend.id
@@ -544,6 +557,7 @@ class StudentAccount(StuPerson):
         Returns:
             ExtendedList[StuHomework]: 作业(不包含作业资源)
         """
+        self.update_login_status()
         r = self._session.get(Url.GET_HOMEWORK_URL, params={
             "pageIndex": 2,
             "completeStatus": 1 if is_complete else 0,
@@ -588,6 +602,7 @@ class StudentAccount(StuPerson):
         Returns:
             List[HwResource]: 作业资源
         """
+        self.update_login_status()
         if hw_typecode == 102:
             return []
         r = self._session.post(Url.GET_HOMEWORK_RESOURCE_URL, json={
@@ -613,4 +628,52 @@ class StudentAccount(StuPerson):
             ))
         return resources
 
+    def _set_exam_rank(self, mark: Mark):
+        r = self._session.get(Url.GET_EXAM_LEVEL_TREND_URL, params={
+            "examId": mark.exam.id,
+            "pageIndex": 1,
+            "pageSize": 1
+        }, headers=self._get_auth_header())
+        data = r.json()
+        num = data["result"]["list"][0]["dataList"][0]["statTotalNum"]
 
+        r = self._session.get("https://www.zhixue.com/zhixuebao/report/exam/getSubjectDiagnosis", params={
+            "examId": mark.exam.id
+        }, headers=self._get_auth_header())
+        data = r.json()
+        for each in data["result"]["list"]:
+            each_mark = mark.find(lambda t: t.subject.code == each["subjectCode"])
+            if each_mark is not None:
+                each_mark.class_rank = math.ceil(each["myRank"] / 100 * num)
+    
+    def get_errorbook(self, exam_id, subject_id: str) -> List[ErrorBookTopic]:
+        r = self._session.get(Url.GET_ERRORBOOK_URL, params={
+            "examId": exam_id,
+            "paperId": subject_id
+        }, headers=self._get_auth_header())
+        data = r.json()
+        if data["errorCode"] != 0: #  {'errorCode': 40217, 'errorInfo': '暂时未收集到试题信息,无法查看', 'result': ''}
+            raise Exception(data)
+        result = []
+        for each in data["result"]["wrongTopicAnalysis"]["topicList"]:
+            result.append(ErrorBookTopic(
+                analysis_html=each["analysisHtml"],
+                answer_html=each["answerHtml"],
+                answer_type=each["answerType"],
+                is_correct=each["beCorrect"],
+                class_score_rate=each["classScoreRate"],
+                content_html=each["contentHtml"],
+                difficulty=each["difficultyValue"],
+                dis_title_number=each["disTitleNumber"],
+                image_answer=each.get("imageAnswer"),
+                paper_id=each["paperId"],
+                subject_name=each["paperName"],
+                score=each["score"],
+                standard_answer=each["standardAnswer"],
+                standard_score=each["standardScore"],
+                topic_analysis_img_url=each["topicAnalysisImgUrl"],
+                subject_id=each["topicId"],
+                topic_img_url=each["topicImgUrl"],
+                topic_source_paper_name=each["topicSourcePaperName"]
+            ))
+        return result
