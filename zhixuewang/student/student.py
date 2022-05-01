@@ -1,10 +1,11 @@
 import hashlib
 import json
+import math
 import time
 import uuid
 from enum import IntEnum
 from typing import List, Tuple, Union
-from zhixuewang.models import (Account, BasicSubject, ExtendedList, Exam, Homework, HwAnsPubData, HwResource, HwType, Mark, Role, StuHomework, Subject, SubjectScore,
+from zhixuewang.models import (Account, BasicSubject, ErrorBookTopic, ExtendedList, Exam, Homework, HwAnsPubData, HwResource, HwType, Mark, Role, StuHomework, Subject, SubjectScore,
                                StuClass, School, Sex, Grade, Phase, ExamInfo,
                                StuPerson, StuPersonList)
 from zhixuewang.exceptions import GetOriginalError, UserDefunctError, PageConnectionError, PageInformationError
@@ -253,6 +254,7 @@ class StudentAccount(Account, StuPerson):
                 )
                 # subject_score.create_time = 0
                 mark.append(subject_score)
+            self._set_exam_rank(mark)
         except (JSONDecodeError, KeyError) as e:
             raise PageInformationError(
                 f"__get_self_mark中网页内容发生改变, 错误为{e}, 内容为\n{r.text}")
@@ -626,4 +628,52 @@ class StudentAccount(Account, StuPerson):
             ))
         return resources
 
+    def _set_exam_rank(self, mark: Mark):
+        r = self._session.get(Url.GET_EXAM_LEVEL_TREND_URL, params={
+            "examId": mark.exam.id,
+            "pageIndex": 1,
+            "pageSize": 1
+        }, headers=self._get_auth_header())
+        data = r.json()
+        num = data["result"]["list"][0]["dataList"][0]["statTotalNum"]
 
+        r = self._session.get("https://www.zhixue.com/zhixuebao/report/exam/getSubjectDiagnosis", params={
+            "examId": mark.exam.id
+        }, headers=self._get_auth_header())
+        data = r.json()
+        for each in data["result"]["list"]:
+            each_mark = mark.find(lambda t: t.subject.code == each["subjectCode"])
+            if each_mark is not None:
+                each_mark.class_rank = math.ceil(each["myRank"] / 100 * num)
+    
+    def get_errorbook(self, exam_id, subject_id: str) -> List[ErrorBookTopic]:
+        r = self._session.get(Url.GET_ERRORBOOK_URL, params={
+            "examId": exam_id,
+            "paperId": subject_id
+        }, headers=self._get_auth_header())
+        data = r.json()
+        if data["errorCode"] != 0: #  {'errorCode': 40217, 'errorInfo': '暂时未收集到试题信息,无法查看', 'result': ''}
+            raise Exception(data)
+        result = []
+        for each in data["result"]["wrongTopicAnalysis"]["topicList"]:
+            result.append(ErrorBookTopic(
+                analysis_html=each["analysisHtml"],
+                answer_html=each["answerHtml"],
+                answer_type=each["answerType"],
+                is_correct=each["beCorrect"],
+                class_score_rate=each["classScoreRate"],
+                content_html=each["contentHtml"],
+                difficulty=each["difficultyValue"],
+                dis_title_number=each["disTitleNumber"],
+                image_answer=each.get("imageAnswer"),
+                paper_id=each["paperId"],
+                subject_name=each["paperName"],
+                score=each["score"],
+                standard_answer=each["standardAnswer"],
+                standard_score=each["standardScore"],
+                topic_analysis_img_url=each["topicAnalysisImgUrl"],
+                subject_id=each["topicId"],
+                topic_img_url=each["topicImgUrl"],
+                topic_source_paper_name=each["topicSourcePaperName"]
+            ))
+        return result
