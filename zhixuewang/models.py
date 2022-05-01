@@ -240,6 +240,15 @@ class SubjectScore:
     grade_rank: int = field(default_factory=int, compare=False)
     exam_rank: int = field(default_factory=int, compare=False)
 
+    def __str__(self) -> str:
+        if self.person.id == "": #mark
+            data = f"{self.subject.name}: {self.score}"
+            if self.class_rank != 0:
+                data += f" (班级第{self.class_rank}名)"
+            return data
+        return self.__repr__()
+
+
 
 class Mark(ExtendedList[SubjectScore]):
     """一场考试的成绩"""
@@ -329,3 +338,24 @@ class StuHomework(Homework):
 class HwResource:
     path: str
     name: str
+
+@dataclass
+class ErrorBookTopic:
+    analysis_html: str
+    answer_html: str
+    answer_type: str
+    is_correct: bool
+    class_score_rate: float
+    content_html: str
+    difficulty: int
+    dis_title_number: str
+    paper_id: str
+    subject_name: str
+    score: float
+    standard_answer: str # 网址
+    standard_score: float
+    subject_id: str
+    topic_img_url: str # 好看的题目
+    topic_source_paper_name: str
+    image_answer: List[str] # 你的答案
+    topic_analysis_img_url: str

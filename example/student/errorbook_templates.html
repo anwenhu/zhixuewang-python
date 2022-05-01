@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html;charset=utf-8">
+        <title>成长手册</title>
+    </head>
+
+    <style>
+        #whereErrorFrom{
+            padding: 10px;
+        }
+
+        .studentInformation{
+            padding: 10px;
+        }
+
+        .mian{
+            page-break-after:always
+        }
+
+        .num {
+            color: #ff9565;
+            font-size: medium;
+            background-color: white;
+        }
+
+        .top {
+            color: black;
+            font-size: large;
+        }
+
+        .errorInformation {
+            background: darkgray;
+        }
+
+        body {
+            padding: 5px;
+        }
+    </style>
+    <body>
+        <div>
+            <div class = "main">
+                <div class="top" align="center">
+                    <strong>错题本</strong><br>
+                </div>
+
+                <div class = "studentInformation">
+                    <span>姓名：{{model.name}}</span><br>
+                    <span>考试名称：{{model.examName}}</span><br>
+                    <span>考试科目：{{model.subjectName}}</span><br>
+                    <span>班级排名：{{model.rank}}</span><br>
+                    <div>
+                        <hr style= "border:1px dashed gray">
+                    </div>
+                </div>
+            </div>
+
+            <div class = "main">
+                <div class="top" align="center">
+                    <strong>全部错题</strong><br>
+                </div>
+                {% for errorbook in model.errorbooks %}
+                <div class="errorInformation">
+                    <span class="num">{{loop.index}}.</span>
+                    <span id = "whereErrorFrom">错题来源:{{errorbook.topic_source_paper_name}};</span>
+                    <span >班级正确率:{{errorbook.class_score_rate}}</span>
+                </div>
+                    <img src={{errorbook.topic_img_url}}>
+                     <div style="height: 350px;">
+                         【错题订正】:
+                     </div>
+                <div>
+                    <hr style= "border:1px dashed gray">
+                </div>
+                {% endfor %}
+            </div>
+                
+            <div>
+                <div class="top" align="center">
+                    <strong>参考答案</strong><br>
+                </div>
+                {% for errorbook in model.errorbooks %}
+                    <span class="num">{{loop.index}}.</span>
+                    <span>答案：<img src={{errorbook.standard_answer}}></span><br>
+                    <span>分析：<img src={{errorbook.topic_analysis_img_url}}></span><br>
+                    <div>
+                        <hr style= "border:1px dashed gray">
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </body>
+</html>

@@ -59,3 +59,37 @@ def get_session_tgt(tgt: str):
         "ticket": json_obj["data"]["st"],
     })
     return session
+
+def get_level_trend(self, exam_id, subject_id): # 表格数据
+    r = self._session.get(Url.GET_PAPER_LEVEL_TREND_URL, params={
+        "examId": exam_id,
+        "paperId": subject_id
+    }, headers=self._get_auth_header())
+    data = r.json()
+    # print(data)
+    if data["errorCode"] != 0:
+        raise Exception("获取等级错误"+data["errorInfo"])
+    ll = []
+    for i in data["result"]["list"][0]["dataList"]:
+        ll.append({
+                "Time":i["dateDisp"],
+                "level":i["level"]
+            })
+    return ll
+
+def get_lost_topic(self, exam_id, subject_id):
+    r = self._session.get(Url.GET_LOST_TOPIC_URL, params={
+        "examId": exam_id,
+        "paperId": subject_id
+    }, headers=self._get_auth_header())
+    data = r.json()
+    ll = []
+    if data["errorCode"] != 0:
+        raise Exception("获取失分点错误" + data["errorInfo"])
+    for i in data["result"]["dataList"]:
+        if i["color"]["code"] == "1":
+            ll.append({
+                "Name":i["name"],
+                "Score":i["score"]
+            })
+    return ll
