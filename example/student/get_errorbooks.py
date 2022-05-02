@@ -1,17 +1,17 @@
 # 以下代码参考: https://github.com/RICHARDCJ249/zhixue_errorbook
 
-
 from zhixuewang import login_student
 import jinja2
 import os
 import datetime
-import sys
 from zhixuewang.account import load_account
+import subprocess
 
-WKHTMLTOPDF_PATH = r'D:\wkhtmltopdf\bin\wkhtmltopdf.exe' # wkhtmltopdf 地址
-if WKHTMLTOPDF_PATH == "默认":
-    print("请安装wkhtmltopdf, 把WKHTMLTOPDF_PATH更改为相应地址后再运行")
-    sys.exit()
+
+WKHTMLTOPDF_PATH = r'wkhtmltopdf.exe' # wkhtmltopdf 地址
+if not os.path.exists("wkhtmltopdf.exe"):
+    print("请在release上下载wkhtmltopdf.exe后放到本目录")
+
 # PDF参数
 PRARMETER_PDF = '--page-size "B5" --margin-top "0.25in" --margin-right "0.25in" --margin-bottom "0.25in" --margin-left "0.3in" --encoding "UTF-8" --no-outline --footer-center "·[page]·"'
 
@@ -32,7 +32,7 @@ def fullTemplate(model):
 def htmlToPdf(file_name, subject):
     name = f"{subject.name}-{datetime.datetime.now().strftime('%Y-%m-%d')}-错题本.pdf"
     command = f'{WKHTMLTOPDF_PATH} {PRARMETER_PDF} {file_name} {name}'
-    os.system(command)
+    subprocess.run(command, shell=True)
 
 def clean(subjects):
     for subject in subjects:
