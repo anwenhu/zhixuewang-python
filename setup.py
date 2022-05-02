@@ -14,5 +14,5 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     platforms="any",
-    install_requires=["requests", "httpx", "numpy<=1.21"],
+    install_requires=["requests", "httpx", "numpy<=1.21", "rsa"],
 )

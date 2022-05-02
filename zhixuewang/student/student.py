@@ -635,12 +635,16 @@ class StudentAccount(Account, StuPerson):
             "pageSize": 1
         }, headers=self._get_auth_header())
         data = r.json()
+        if data["errorCode"] != 0:
+            return
         num = data["result"]["list"][0]["dataList"][0]["statTotalNum"]
 
-        r = self._session.get("https://www.zhixue.com/zhixuebao/report/exam/getSubjectDiagnosis", params={
+        r = self._session.get("", params={
             "examId": mark.exam.id
         }, headers=self._get_auth_header())
         data = r.json()
+        if data["errorCode"] != 0:
+            return
         for each in data["result"]["list"]:
             each_mark = mark.find(lambda t: t.subject.code == each["subjectCode"])
             if each_mark is not None:

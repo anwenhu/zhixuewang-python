@@ -8,7 +8,7 @@ import datetime
 import sys
 from zhixuewang.account import load_account
 
-WKHTMLTOPDF_PATH = r'默认' # wkhtmltopdf 地址
+WKHTMLTOPDF_PATH = r'D:\wkhtmltopdf\bin\wkhtmltopdf.exe' # wkhtmltopdf 地址
 if WKHTMLTOPDF_PATH == "默认":
     print("请安装wkhtmltopdf, 把WKHTMLTOPDF_PATH更改为相应地址后再运行")
     sys.exit()
