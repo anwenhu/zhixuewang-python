@@ -41,3 +41,4 @@ class Url:
     GET_PAPER_LEVEL_TREND_URL = f"{BASE_URL}/zhixuebao/report/paper/getLevelTrend"
     GET_LOST_TOPIC_URL = f"{BASE_URL}/zhixuebao/report/paper/getExamPointsAndScoringAbility"
     GET_ERRORBOOK_URL = f"{BASE_URL}/zhixuebao/report/paper/getLostTopicAndAnalysis"
+    GET_SUBJECT_DIAGNOSIS = f"{BASE_URL}/zhixuebao/report/exam/getSubjectDiagnosis"

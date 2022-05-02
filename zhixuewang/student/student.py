@@ -280,9 +280,11 @@ class StudentAccount(Account, StuPerson):
     def __get_subjects(self, exam: Exam) -> ExtendedList[Subject]:
         self.update_login_status()
         subjects: ExtendedList[Subject] = ExtendedList()
+        t = time.perf_counter()
         r = self._session.get(Url.GET_SUBJECT_URL,
                               params={"examId": exam.id},
                               headers=self._get_auth_header())
+        print(time.perf_counter() - t)
         if not r.ok:
             raise PageConnectionError(
                 f"__get_subjects中出错, 状态码为{r.status_code}")
@@ -635,12 +637,16 @@ class StudentAccount(Account, StuPerson):
             "pageSize": 1
         }, headers=self._get_auth_header())
         data = r.json()
+        if data["errorCode"] != 0:
+            return
         num = data["result"]["list"][0]["dataList"][0]["statTotalNum"]
 
-        r = self._session.get("https://www.zhixue.com/zhixuebao/report/exam/getSubjectDiagnosis", params={
+        r = self._session.get(Url.GET_SUBJECT_DIAGNOSIS, params={
             "examId": mark.exam.id
         }, headers=self._get_auth_header())
         data = r.json()
+        if data["errorCode"] != 0:
+            return
         for each in data["result"]["list"]:
             each_mark = mark.find(lambda t: t.subject.code == each["subjectCode"])
             if each_mark is not None:
