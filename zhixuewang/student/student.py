@@ -36,6 +36,7 @@ class StudentAccount(Account, StuPerson):
     def __init__(self, session):
         super().__init__(session, Role.student)
         self._token_timestamp = ["", 0]
+        self.exams: ExtendedList[Exam] = ExtendedList()
 
     def _get_auth_header(self) -> dict:
         """获取header"""
@@ -143,7 +144,7 @@ class StudentAccount(Account, StuPerson):
         r = self._session.get(Url.GET_EXAM_URL,
                               params={
                                   "pageIndex": page_index,
-                                  "pageSize": 2
+                                  "pageSize": 10
                               },
                               headers=self._get_auth_header())
         if not r.ok:
@@ -201,6 +202,13 @@ class StudentAccount(Account, StuPerson):
 
     def get_exams(self) -> ExtendedList[Exam]:
         """获取所有考试"""
+        
+        # 缓存
+        if len(self.exams) > 0:
+            latest_exam = self.get_latest_exam()
+            if self.exams[0].id == latest_exam.id:
+                return self.exams
+
         exams: ExtendedList[Exam] = ExtendedList()
         i = 1
         check = True
@@ -208,6 +216,7 @@ class StudentAccount(Account, StuPerson):
             cur_exams, check = self.get_page_exam(i)
             exams.extend(cur_exams)
             i += 1
+        self.exams = exams
         return exams
 
     def __get_self_mark(self, exam: Exam, has_total_score: bool) -> Mark:
