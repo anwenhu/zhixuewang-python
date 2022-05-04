@@ -65,18 +65,27 @@ def get_rank_data(subjectScores: ExtendedList[SubjectScore]):
 
 
 def set_rank(subjectScores: ExtendedList[SubjectScore]):
+    subjectScores.sort(key=lambda t: t.score, reverse=True)
     extraData, has_many_schools = get_rank_data(subjectScores)
     for each in subjectScores:
         class_id = each.person.clazz.id
         school_id = each.person.clazz.school.id
         score = each.score
-        if has_many_schools:
-            each.class_rank = extraData.schoolsRankMap[school_id][class_id][score]
-            each.grade_rank = extraData.schoolsRankMap[school_id]["all"][score]
-            each.exam_rank = extraData.allRankMap[score]
-        else:
-            each.class_rank = extraData.schoolRankMap[class_id][score]
-            each.grade_rank = extraData.schoolRankMap["all"][score]
+        try:
+            if has_many_schools:
+                each.class_rank = extraData.schoolsRankMap[school_id][class_id][score]
+                each.grade_rank = extraData.schoolsRankMap[school_id]["all"][score]
+                each.exam_rank = extraData.allRankMap[score]
+            else:
+                each.class_rank = extraData.schoolRankMap[class_id][score]
+                each.grade_rank = extraData.schoolRankMap["all"][score]
+        except Exception as e:
+            print(extraData.schoolsRankMap[school_id])
+            print(extraData.schoolsRankMap[school_id][class_id])
+            print("")
+            print(extraData.schoolsRankMap[school_id]["all"])
+            raise e
+
 
 def calc_total_score(data) -> ExtendedList[SubjectScore]:
     # personScoreMap = group_by(data, lambda t: )

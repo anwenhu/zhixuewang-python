@@ -2,7 +2,7 @@ from typing import Dict, List
 
 
 def get_rank_map(data: List[float]) -> Dict[float, int]:
-    last = 0
+    last = -1
     rankMap: Dict[float, int] = {}
     i = 0
     for cur in data:

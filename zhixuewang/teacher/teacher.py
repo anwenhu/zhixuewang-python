@@ -14,7 +14,8 @@ from zhixuewang.teacher.models import (ClassExtraData,
                                        SubjectMarkingProgress, TeaPerson,
                                        TopicMarkingProgress,
                                        TopicTeacherMarkingProgress)
-from zhixuewang.teacher.tools import (calc_total_score, divide_array, get_extra_data, group_by, set_rank, spread_array)
+from zhixuewang.teacher.tools import (
+    calc_total_score, divide_array, get_extra_data, group_by, set_rank, spread_array)
 from zhixuewang.teacher.urls import Url
 from zhixuewang.tools.rank import get_rank_map
 
@@ -136,7 +137,7 @@ class TeacherAccount(Account, TeaPerson):
                     "topicSetId": subject_id,
                     "topicNumber": "0",
                     "startScore": "0",
-                    "endScore": "10000",
+                    "endScore": "1000",
                 }, timeout=100)
             data = r.json()
             subjectScores: ExtendedList[SubjectScore] = ExtendedList()
@@ -164,11 +165,11 @@ class TeacherAccount(Account, TeaPerson):
         for each_classes in divide_array(classes, count):
             each_class_ids = ",".join([i.id for i in each_classes])
             tasks.append(self.__get_class_score(each_class_ids, subject_id))
-        
-        return spread_array(list(await asyncio.gather(*tasks)))
+        data = spread_array(list(await asyncio.gather(*tasks)))
+        return data
+
     async def __get_scores(self, exam_id: str, force_no_total_score: bool = False):
         exam = self.get_exam_detail(exam_id)
-
         tasks = []
         for school in exam.schools:
             tasks.append(self.__get_school_exam_classes(
@@ -177,7 +178,6 @@ class TeacherAccount(Account, TeaPerson):
         classes: ExtendedList[StuClass] = ExtendedList()
         for data in result:
             classes.extend(data)
-
         class_name_map = {}
         class_school_map = {}
 
@@ -185,8 +185,6 @@ class TeacherAccount(Account, TeaPerson):
             class_name_map[clazz.id] = clazz.name
             class_school_map[clazz.id] = exam.schools.find_by_id(
                 clazz.school.id)
-
-        
 
         tasks = []
         for subject in exam.subjects:
