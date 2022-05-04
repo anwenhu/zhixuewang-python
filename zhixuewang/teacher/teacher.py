@@ -1,5 +1,6 @@
 import asyncio
 import json
+import math
 from typing import Dict, List
 
 import httpx
@@ -13,7 +14,7 @@ from zhixuewang.teacher.models import (ClassExtraData,
                                        SubjectMarkingProgress, TeaPerson,
                                        TopicMarkingProgress,
                                        TopicTeacherMarkingProgress)
-from zhixuewang.teacher.tools import (calc_total_score, get_extra_data, group_by, set_rank)
+from zhixuewang.teacher.tools import (calc_total_score, divide_array, get_extra_data, group_by, set_rank, spread_array)
 from zhixuewang.teacher.urls import Url
 from zhixuewang.tools.rank import get_rank_map
 
@@ -157,6 +158,14 @@ class TeacherAccount(Account, TeaPerson):
                 ))
             return subjectScores
 
+    async def __get_class_score_divide(self, classes: List[StuClass], subject_id: str) -> List[SubjectScore]:
+        count = min(math.ceil(len(classes) / 3), 50)
+        tasks = []
+        for each_classes in divide_array(classes, count):
+            each_class_ids = ",".join([i.id for i in each_classes])
+            tasks.append(self.__get_class_score(each_class_ids, subject_id))
+        
+        return spread_array(list(await asyncio.gather(*tasks)))
     async def __get_scores(self, exam_id: str, force_no_total_score: bool = False):
         exam = self.get_exam_detail(exam_id)
 
@@ -177,12 +186,12 @@ class TeacherAccount(Account, TeaPerson):
             class_school_map[clazz.id] = exam.schools.find_by_id(
                 clazz.school.id)
 
-        class_ids = ",".join([i.id for i in classes])
+        
 
         tasks = []
         for subject in exam.subjects:
-            tasks.append(self.__get_class_score(class_ids, subject.id))
-        scores: ExtendedList[ExtendedList[SubjectScore]] = await asyncio.gather(*tasks)
+            tasks.append(self.__get_class_score_divide(classes, subject.id))
+        scores: ExtendedList[ExtendedList[SubjectScore]] = ExtendedList(list(await asyncio.gather(*tasks)))
         for each_subject in scores:
             for each in each_subject:
                 each.person.clazz.name = class_name_map[each.person.clazz.id]

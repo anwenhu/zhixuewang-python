@@ -5,7 +5,7 @@ import time
 import uuid
 from enum import IntEnum
 from typing import List, Tuple, Union
-from zhixuewang.models import (Account, BasicSubject, ErrorBookTopic, ExtendedList, Exam, Homework, HwAnsPubData, HwResource, HwType, Mark, Role, StuHomework, Subject, SubjectScore,
+from zhixuewang.models import (Account, BasicSubject, ErrorBookTopic, ExtendedList, Exam, HwAnsPubData, HwResource, HwType, Mark, Role, StuHomework, Subject, SubjectScore,
                                StuClass, School, Sex, Grade, Phase, ExamInfo,
                                StuPerson, StuPersonList)
 from zhixuewang.exceptions import GetOriginalError, UserDefunctError, PageConnectionError, PageInformationError
@@ -289,11 +289,9 @@ class StudentAccount(Account, StuPerson):
     def __get_subjects(self, exam: Exam) -> ExtendedList[Subject]:
         self.update_login_status()
         subjects: ExtendedList[Subject] = ExtendedList()
-        t = time.perf_counter()
         r = self._session.get(Url.GET_SUBJECT_URL,
                               params={"examId": exam.id},
                               headers=self._get_auth_header())
-        print(time.perf_counter() - t)
         if not r.ok:
             raise PageConnectionError(
                 f"__get_subjects中出错, 状态码为{r.status_code}")

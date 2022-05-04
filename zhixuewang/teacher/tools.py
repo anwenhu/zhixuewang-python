@@ -1,3 +1,4 @@
+import math
 from zhixuewang.models import ExtendedList, Subject, SubjectScore
 from typing import Callable, Dict, List, TypeVar
 import numpy
@@ -8,6 +9,13 @@ T = TypeVar("T")
 
 V = TypeVar("V")
 
+# 52 10 : 0-9 10-19 20-29 30-39 40-49 50-59
+# 13 3: 0-2 3-5 
+def divide_array(array: List[T], count: int) -> List[List[T]]:
+    result = []
+    for i in range(math.ceil(len(array) / count)):
+        result.append(array[i*count:i*count + count])
+    return result
 
 def group_by(data: List[T], f: Callable[[T], V]) -> Dict[V, List[T]]:
     data_map: Dict[V, List[T]] = {}
