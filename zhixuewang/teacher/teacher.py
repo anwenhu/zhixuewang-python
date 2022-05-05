@@ -50,7 +50,10 @@ class TeacherAccount(Account, TeaPerson):
                 "markingPaperId": subject_id
             })
             data = r.json()
+            if data is None:
+                return []
             classes = []
+
             for each in data:
                 classes.append(StuClass(
                     id=each["classId"],
