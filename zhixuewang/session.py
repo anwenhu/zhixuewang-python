@@ -1,16 +1,17 @@
-
 import json
 import requests
 from zhixuewang.exceptions import LoginError, UserNotFoundError, UserOrPassError
-from zhixuewang.tools.password_helper import base64_encode, encode_password
-
+import base64
 from zhixuewang.urls import Url
+
 
 def get_basic_session() -> requests.Session:
     session = requests.Session()
     session.headers[
-        "User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1"
+        "User-Agent"
+    ] = "Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1"
     return session
+
 
 def get_session(username: str, password: str, _type: str = "auto") -> requests.Session:
     """通过用户名和密码获取session
@@ -32,7 +33,15 @@ def get_session(username: str, password: str, _type: str = "auto") -> requests.S
         requests.session:
     """
     if len(password) != 32:
-        password = encode_password(password)
+        password = (
+            pow(
+                int.from_bytes(password.encode()[::-1], "big"),
+                65537,
+                186198350384465244738867467156319743461,
+            )
+            .to_bytes(16, "big")
+            .hex()
+        )  ### by immoses648
     session = get_basic_session()
     r = session.get(Url.SSO_URL)
     json_obj = json.loads(r.text.strip().replace("\\", "").replace("'", "")[1:-1])
@@ -40,21 +49,23 @@ def get_session(username: str, password: str, _type: str = "auto") -> requests.S
         raise LoginError(json_obj["data"])
     lt = json_obj["data"]["lt"]
     execution = json_obj["data"]["execution"]
-    r = session.get(Url.SSO_URL,
-                    params={
-                        "encode": "true",
-                        "sourceappname": "tkyh,tkyh",
-                        "_eventId": "submit",
-                        "appid": "zx-container-client",
-                        "client": "web",
-                        "type": "loginByNormal",
-                        "key": _type,
-                        "lt": lt,
-                        "execution": execution,
-                        "customLogoutUrl": "https://www.zhixue.com/login.html",
-                        "username": username,
-                        "password": password
-                    })
+    r = session.get(
+        Url.SSO_URL,
+        params={
+            "encode": "true",
+            "sourceappname": "tkyh,tkyh",
+            "_eventId": "submit",
+            "appid": "zx-container-client",
+            "client": "web",
+            "type": "loginByNormal",
+            "key": _type,
+            "lt": lt,
+            "execution": execution,
+            "customLogoutUrl": "https://www.zhixue.com/login.html",
+            "username": username,
+            "password": password,
+        },
+    )
     json_obj = json.loads(r.text.strip().replace("\\", "").replace("'", "")[1:-1])
     if json_obj["code"] != 1001:
         if json_obj["code"] == 1002:
@@ -63,12 +74,15 @@ def get_session(username: str, password: str, _type: str = "auto") -> requests.S
             raise UserNotFoundError()
         raise LoginError(json_obj["data"])
     ticket = json_obj["data"]["st"]
-    session.post(Url.SERVICE_URL, data={
-        "action": "login",
-        "ticket": ticket,
-    })
-    session.cookies.set("uname", base64_encode(username))
-    session.cookies.set("pwd", base64_encode(password))
+    session.post(
+        Url.SERVICE_URL,
+        data={
+            "action": "login",
+            "ticket": ticket,
+        },
+    )
+    session.cookies.set("uname", base64.b64encode(username.encode()).decode())
+    session.cookies.set("pwd", base64.b64encode(password.encode()).decode())
     return session
 
 
@@ -105,19 +119,19 @@ def get_user_id(username: str, password: str) -> str:
     """
     session = requests.Session()
     session.headers[
-        "User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1"
-    r = session.post(Url.TEST_PASSWORD_URL,
-                     data={
-                         "loginName": username,
-                         "password": password,
-                         "code": ""
-                     })
+        "User-Agent"
+    ] = "Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1"
+    r = session.post(
+        Url.TEST_PASSWORD_URL,
+        data={"loginName": username, "password": password, "code": ""},
+    )
     json_obj = r.json()  # {"data": ErrorMsg, "result": StatusCode}
     if json_obj.get("data"):
         return json_obj["data"]
     if json_obj["result"] != "success":
         raise UserOrPassError()
     return ""
+
 
 def check_is_student(s: requests.Session) -> bool:
     """判断用户是否为学生

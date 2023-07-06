@@ -40,10 +40,3 @@ class PageConnectionError(Error):
         self.value = value
 
 
-class PageInformationError(Error):
-    def __init__(self, value):
-        self.value = value
-
-class GetOriginalError(Error):
-    def __init__(self, error_code: int, error_info: str):
-        self.value = f"获取原卷错误:{error_info}({error_code})"

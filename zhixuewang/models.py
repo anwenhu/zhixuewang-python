@@ -1,19 +1,17 @@
 import base64
 from enum import Enum
+import os
 import pickle
 from typing import List, Callable, Union, TypeVar
 from dataclasses import dataclass, field
-from zhixuewang.session import get_session
+from zhixuewang.session import get_basic_session, get_session
 from zhixuewang.tools.datetime_tool import get_property
-from zhixuewang.tools.cookies import get_username_from_session
-from zhixuewang.tools.cookies import get_password_from_session
 from zhixuewang.urls import Url
 
 
 class Role(Enum):
-    student = 0,
+    student = (0,)
     teacher = 1
-
 
 
 @dataclass
@@ -22,17 +20,22 @@ class AccountData:
     encoded_password: str
     role: Role
 
+
 class Account:
     def __init__(self, session, role: Role) -> None:
         self._session = session
         self.role = role
-        self.username = get_username_from_session(session)
+        self.username = base64.b64decode(session.cookies["uname"].encode()).decode()
 
     def save_account(self, path: str = "user.data"):
         with open(path, "wb") as f:
-            data = pickle.dumps(AccountData(self.username, get_password_from_session(self._session), self.role))
+            password = base64.b64decode(self._session.cookies["pwd"].encode()).decode()
+            data = pickle.dumps(
+                AccountData(
+                    self.username, password, self.role
+                )
+            )
             f.write(base64.b64encode(data))
-    
 
     def update_login_status(self):
         """更新登录状态. 如果session过期自动重新获取"""
@@ -41,9 +44,8 @@ class Account:
         if data["result"] == "success":
             return
         # session过期
-        password = get_password_from_session(self._session)
+        password = base64.b64decode(self._session.cookies["pwd"].encode()).decode()
         self._session = get_session(self.username, password)
-
 
 
 T = TypeVar("T")
@@ -90,23 +92,19 @@ class ExtendedList(List[T]):
 
 
 @dataclass
-class Phase:
-    """学期, 比如七年级, 八年级"""
-    name: str = ""
-    code: str = ""
-
-
-@dataclass
 class Grade:
     """年级"""
+
     name: str = ""
     code: str = ""
-    phase: Phase = field(default_factory=Phase)
+    phase_name: str = ""
+    phase_code: str = ""
 
 
 @dataclass
 class School:
     """学校"""
+
     id: str = ""
     name: str = ""
 
@@ -116,6 +114,7 @@ class School:
 
 class Sex(Enum):
     """性别"""
+
     GIRL = "女"
     BOY = "男"
 
@@ -126,6 +125,7 @@ class Sex(Enum):
 @dataclass(eq=False)
 class StuClass:
     """班级"""
+
     id: str = ""
     name: str = ""
     grade: Grade = field(default_factory=Grade, repr=False)
@@ -137,50 +137,44 @@ class StuClass:
     def __str__(self):
         return f"学校: {self.school} 班级: {self.name}"
 
-    def __repr__(self):
-        return f"StuClass(id={self.id}, name={self.name}, school={self.school.__repr__()})"
-
 
 @dataclass(repr=False)
 class Person:
     """一些基本属性"""
+
     id: str = ""
     name: str = ""
     gender: Sex = Sex.GIRL
-    email: str = ""
     mobile: str = ""
-    qq_number: str = ""
-    _birthday_timestamp: float = 0
-    birthday = get_property("_birthday_timestamp")
     avatar: str = ""
 
 
 @dataclass(repr=False)
 class StuPerson(Person):
     """一些关于学生的信息"""
+
     code: str = ""
     clazz: StuClass = field(default_factory=StuClass, repr=False)
-    
 
     def __str__(self):
-        return f"{self.clazz} 姓名: {self.name} 性别: {self.gender} " \
-               f"{f'QQ: {self.qq_number} ' if self.qq_number != '' else ''}" \
-               f"{f'手机号码: {self.mobile}' if self.mobile != '' else ''}"
+        return (
+            f"{self.clazz} 姓名: {self.name} 性别: {self.gender} "
+            f"{f'手机号码: {self.mobile}' if self.mobile != '' else ''}"
+        )
 
-    def __repr__(self):
-        return f"Person(id={self.id}, clazz={self.clazz.__repr__()}, name={self.name}, gender={self.gender}" \
-               f"{f', qq_number={self.qq_number}' if self.qq_number != '' else ''}" \
-               f"{f', mobile={self.mobile}' if self.mobile != '' else ''}" + ")"
 
 @dataclass
 class BasicSubject:
     """学科基本信息"""
+
     name: str = ""
     code: str = ""
-    
+
+
 @dataclass(eq=False)
 class Subject(BasicSubject):
     """学科"""
+
     id: str = ""
     standard_score: float = 0
     status: str = field(default="", repr=False)
@@ -196,20 +190,16 @@ class Subject(BasicSubject):
 @dataclass(eq=False)
 class Exam:
     """考试"""
+
     id: str = ""
     name: str = ""
     status: str = ""
     grade_code: str = ""
     subjects: ExtendedList[Subject] = field(default_factory=ExtendedList, repr=False)
     schools: ExtendedList[School] = field(default_factory=ExtendedList, repr=False)
-    create_school: School = field(default_factory=School, repr=False)
     create_user: Person = field(default_factory=Person, repr=False)
     _create_timestamp: float = field(default=0, repr=False)
     create_time = get_property("_create_timestamp")
-    _exam_timestamp: float = field(default=0, repr=False)
-    exam_time = get_property("_exam_timestamp")
-    _complete_timestamp: float = field(default=0, repr=False)
-    complete_time = get_property("_complete_timestamp")
     class_rank: int = field(default=0, repr=False)
     grade_rank: int = field(default=0, repr=False)
     is_final: bool = False
@@ -221,27 +211,19 @@ class Exam:
         return type(other) == type(self) and other.id == self.id
 
 
-
-@dataclass(eq=False)
-class ExamInfo(Exam):
-    classId: str = ""
-    subjects: ExtendedList[Subject] = field(default_factory=ExtendedList, repr=False)
-
-
 @dataclass
 class SubjectScore:
     """一门学科的成绩"""
+
     score: float = 0
     subject: Subject = field(default_factory=Subject)
     person: StuPerson = field(default_factory=StuPerson)
-    _create_timestamp: float = field(default=0, repr=False)
-    create_time = get_property("_create_timestamp")
     class_rank: int = field(default_factory=int, compare=False)
     grade_rank: int = field(default_factory=int, compare=False)
     exam_rank: int = field(default_factory=int, compare=False)
 
     def __str__(self) -> str:
-        if self.person.id == "": #mark
+        if self.person.id == "":  # mark
             data = f"{self.subject.name}: {self.score}"
             if self.class_rank != 0:
                 data += f" (班级第{self.class_rank}名)"
@@ -249,95 +231,63 @@ class SubjectScore:
         return self.__repr__()
 
 
-
 class Mark(ExtendedList[SubjectScore]):
     """一场考试的成绩"""
 
-    def __init__(self, l: list = list(), exam: Exam = Exam(), person: StuPerson = StuPerson()):
+    def __init__(
+        self, l: list = list(), exam: Exam = Exam(), person: StuPerson = StuPerson()
+    ):
         super().__init__(l)
         self.exam = exam
         self.person = person
 
     def __repr__(self):
         if self.exam and self.person:
-            msg = f"{self.person.name}-{self.exam.name}\n" + \
-                "".join([f"{subject}\n" for subject in self])
+            msg = f"{self.person.name}-{self.exam.name}\n" + "".join(
+                [f"{subject}\n" for subject in self]
+            )
             return msg[:-1]
 
     def __str__(self):
         return self.__repr__()
 
 
-
-class StuPersonList(ExtendedList):
-    """学生列表"""
-
-    def find_by_code(self, code: str) -> StuPerson:
-        """返回第一个准考证号为code的学生"""
-        return self.find(lambda p: p.code == code)
-
-    def find_by_clazz_id(self, clazz_id: str) -> StuPerson:
-        """返回第一个班级id为clazz_id的学生"""
-        return self.find(lambda p: p.clazz.id == clazz_id)
-
-    def find_all_by_clazz_id(self, clazz_id: str) -> ExtendedList[StuPerson]:
-        """返回所有班级id为clazz_id的学生"""
-        return self.find_all(lambda p: p.clazz.id == clazz_id)
-
-    def find_by_clazz(self, clazz: StuClass) -> StuPerson:
-        """返回第一个班级为clazz的学生"""
-        return self.find(lambda p: p.clazz == clazz)
-
-    def find_all_by_clazz(self, clazz: StuClass) -> ExtendedList[StuPerson]:
-        """返回所有班级为clazz的学生"""
-        return self.find_all(lambda p: p.clazz == clazz)
-
-    def find_by_school_id(self, school_id: str) -> StuPerson:
-        """返回第一个学校id为school_id的学生"""
-        return self.find(lambda p: p.school.id == school_id)
-
-    def find_by_school(self, school: School) -> StuPerson:
-        """返回第一个学校为school的学生"""
-        return self.find(lambda p: p.school == school)
-
 @dataclass
 class HwType:
     """作业类型, eg: 105 自由出题"""
+
     name: str
     code: int
 
-@dataclass
-class HwAnsPubData:
-    """作业答案发布信息, 如: 2-学生提交后公布"""
-    name: str
-    code: int 
 
 @dataclass
 class Homework:
     id: str
-    title: str
-    type: HwType
-    begin_time: int
-    end_time: int
-    create_time: int
-    subject: BasicSubject
-    is_allow_makeup: bool  # 是否允许重做
-    class_id: str
-    ansPubData: HwAnsPubData
+    title: str = ""
+    type: HwType = field(default_factory=HwType)
+    begin_time: int = 0
+    end_time: int = 0
+    create_time: int = 0
+    subject_name: str = ""
+    is_allow_makeup: bool = False  # 是否允许重做
+    class_id: str = ""
+
 
 @dataclass
 class StuHomework(Homework):
-    stu_hwid: str
-    # is_commit: bool # 是否提交作业
-    # is_finished: bool # 是否完成?
-    # is_dued: bool # 是否过期
+    stu_hwid: str = ""
 
-    # ...
 
 @dataclass
 class HwResource:
     path: str
     name: str
+
+    def download(self, path: str):
+        r = get_basic_session().get(self.path)
+        with open(os.path.join(path, self.name), "wb") as f:
+            f.write(r.content)
+
 
 @dataclass
 class ErrorBookTopic:
@@ -352,10 +302,10 @@ class ErrorBookTopic:
     paper_id: str
     subject_name: str
     score: float
-    standard_answer: str # 网址
+    standard_answer: str  # 网址
     standard_score: float
     subject_id: str
-    topic_img_url: str # 好看的题目
+    topic_img_url: str  # 好看的题目
     topic_source_paper_name: str
-    image_answer: List[str] # 你的答案
+    image_answer: List[str]  # 你的答案
     topic_analysis_img_url: str
