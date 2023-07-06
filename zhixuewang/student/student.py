@@ -190,7 +190,7 @@ class StudentAccount(Account, StuPerson):
                 id=exam_info_data["examId"],
                 name=exam_info_data["examName"],
                 subjects=subjects,
-                classId=exam_info_data["classId"],
+                classId=self.clazz.id,                           # 接口中属性删除
                 grade_code=json_data["gradeCode"],
                 is_final=exam_info_data["isFinal"]
             )
@@ -646,8 +646,7 @@ class StudentAccount(Account, StuPerson):
         data = r.json()
         if data["errorCode"] != 0:
             return
-        num = data["result"]["list"][0]["dataList"][0]["statTotalNum"]
-
+        num = data["result"]["list"][0]["dataList"][0]["totalNum"]
         r = self._session.get(Url.GET_SUBJECT_DIAGNOSIS, params={
             "examId": mark.exam.id
         }, headers=self._get_auth_header())
@@ -657,8 +656,11 @@ class StudentAccount(Account, StuPerson):
         for each in data["result"]["list"]:
             each_mark = mark.find(lambda t: t.subject.code == each["subjectCode"])
             if each_mark is not None:
-                each_mark.class_rank = math.ceil(each["myRank"] / 100 * num)
-    
+                if each["myRank"] == 0:
+                    each_mark.class_rank = 1
+                else:
+                    each_mark.class_rank = math.ceil(each["myRank"] / 100 * num)
+                
     def get_errorbook(self, exam_id, subject_id: str) -> List[ErrorBookTopic]:
         r = self._session.get(Url.GET_ERRORBOOK_URL, params={
             "examId": exam_id,
