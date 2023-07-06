@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = "1.1.4"
+version = "1.1.8"
 setup(
     name="zhixuewang",
     version=version,
@@ -14,5 +14,5 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     platforms="any",
-    install_requires=["requests", "httpx", "numpy<=1.21", "rsa"],
+    install_requires=["requests", "httpx"],
 )

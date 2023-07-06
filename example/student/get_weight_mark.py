@@ -1,4 +1,5 @@
 from zhixuewang import rewrite_str, login_student
+from getpass import getpass
 import zhixuewang
 
 
@@ -12,15 +13,11 @@ def _(self):
             score += subject.score * 0.7
         elif subject.subject.name == "英语":
             score += subject.score * 0.5
-    return f"加权后的分数为: {score}"
+    return f"加权后的分数为: {score}"     # 权重: 语文 0.8; 数学 0.7; 英语 0.5; 其他科 0
 
 
 if __name__ == "__main__":
-    #请修改如下字段为你的账号和密码
-    user = "114514"
-    password = "1919810"
-    if user == "114514" or password == "1919810":
-        print("请修改源代码第20,21行，改为自己的账号和密码！")
-    else:
-        zxw = login_student(user, password)
-        print(zxw.get_self_mark())
+    username = input("请输入用户名:")
+    password = getpass()
+    zxw = login_student(username, password)
+    print(zxw.get_self_mark())

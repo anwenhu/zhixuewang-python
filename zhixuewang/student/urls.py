@@ -23,10 +23,7 @@ class Url:
     GET_ORIGINAL_URL = f"{BASE_URL}/zhixuebao/report/checksheet/"
 
     # Person
-    GET_FRIEND_URL = f"{BASE_URL}/zhixuebao/zhixuebao/friendmanage/"
-    INVITE_FRIEND_URL = f"{BASE_URL}/zhixuebao/zhixuebao/addFriend/"
-    DELETE_FRIEND_URL = f"{BASE_URL}/zhixuebao/zhixuebao/delFriend/"
-    GET_CLAZZS_URL = GET_FRIEND_URL
+    GET_CLAZZS_URL = f"{BASE_URL}/zhixuebao/zhixuebao/friendmanage/"
     # GET_CLASSMATES_URL = f"{BASE_URL}/zhixuebao/zhixuebao/getClassStudent/"
     GET_CLASSMATES_URL = f"{BASE_URL}/container/contact/student/students"
     GET_TEACHERS_URL = f"{BASE_URL}/container/contact/student/teachers"

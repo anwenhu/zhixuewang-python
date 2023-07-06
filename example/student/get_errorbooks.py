@@ -1,3 +1,5 @@
+### 获取智学网错题本
+### TODO: 字体大小不一致
 # 以下代码参考: https://github.com/RICHARDCJ249/zhixue_errorbook
 
 from zhixuewang import login_student
@@ -10,7 +12,8 @@ import subprocess
 
 WKHTMLTOPDF_PATH = r'wkhtmltopdf.exe' # wkhtmltopdf 地址
 if not os.path.exists("wkhtmltopdf.exe"):
-    print("请在release上下载wkhtmltopdf.exe后放到本目录")
+    print("请在网上下载wkhtmltopdf.exe后放到本目录")
+    exit()
 
 # PDF参数
 PRARMETER_PDF = '--page-size "B5" --margin-top "0.25in" --margin-right "0.25in" --margin-bottom "0.25in" --margin-left "0.3in" --encoding "UTF-8" --no-outline --footer-center "·[page]·"'
