@@ -86,7 +86,31 @@ class TeacherAccount(Account, TeaPerson):
                 data.text.replace("//static.zhixue.com", "https://static.zhixue.com")
             )
         return True
-
+    
+    def get_teacher_roleText(self) -> list:
+        """
+        获得教师的角色文本
+        Return:
+            list: 教师的所有角色名称
+        Raises:
+            ValueError: 未知的角色
+        """
+        str_roles = []
+        for role in self.roles:
+            if role == "teacher":
+                str_roles.append("教师")
+            elif role == "subjectLeader":
+                str_roles.append("备课组长")
+            elif role == "gradeDirecter":
+                str_roles.append("年级组长")
+            elif role == "headteacher":
+                str_roles.append("班主任")
+            elif role == "headmaster":
+                str_roles.append("校长")
+            elif role == "schoolAdministrator":
+                str_roles.append("校管理员")
+            else:
+                raise ValueError(f"教师角色{role}未知。已忽略。")
     def get_exam_subjects(self, exam_id: str) -> ExtendedList[Subject]:
         """
         获取某个考试的考试科目
