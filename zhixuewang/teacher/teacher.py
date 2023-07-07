@@ -40,7 +40,7 @@ class TeacherAccount(Account, TeaPerson):
         return self
 
     async def __get_school_exam_classes(
-        self, school_id: str, subject_id: str
+            self, school_id: str, subject_id: str
     ) -> List[StuClass]:
         async with httpx.AsyncClient(cookies=self._session.cookies) as client:
             r = await client.get(
@@ -63,7 +63,7 @@ class TeacherAccount(Account, TeaPerson):
             return classes
 
     def get_school_exam_classes(
-        self, school_id: str, subject_id: str
+            self, school_id: str, subject_id: str
     ) -> List[StuClass]:
         self.update_login_status()
         return asyncio.run(self.__get_school_exam_classes(school_id, subject_id))
@@ -138,8 +138,8 @@ class TeacherAccount(Account, TeaPerson):
         return exam
 
     def get_marking_progress(
-        self,
-        subject_id: str,
+            self,
+            subject_id: str,
     ) -> List[MarkingProgress]:
         """
         获取某场考试指定科目阅卷情况

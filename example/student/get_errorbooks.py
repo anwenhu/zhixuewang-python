@@ -9,8 +9,7 @@ import datetime
 from zhixuewang.account import load_account
 import subprocess
 
-
-WKHTMLTOPDF_PATH = r'wkhtmltopdf.exe' # wkhtmltopdf 地址
+WKHTMLTOPDF_PATH = r'wkhtmltopdf.exe'  # wkhtmltopdf 地址
 if not os.path.exists("wkhtmltopdf.exe"):
     print("请在网上下载wkhtmltopdf.exe后放到本目录")
     exit()
@@ -27,20 +26,24 @@ class FullModel():
         self.rank = rank
         self.errorbooks = errorbook
 
+
 def fullTemplate(model):
     env = jinja2.Environment(loader=jinja2.FileSystemLoader("./"))
     tep = env.get_template("errorbook_templates.html")
     return tep.render(model=model)
+
 
 def htmlToPdf(file_name, subject):
     name = f"{subject.name}-{datetime.datetime.now().strftime('%Y-%m-%d')}-错题本.pdf"
     command = f'{WKHTMLTOPDF_PATH} {PRARMETER_PDF} {file_name} {name}'
     subprocess.run(command, shell=True)
 
+
 def clean(subjects):
     for subject in subjects:
         if os.path.exists(f"{subject.name}.html"):
             os.remove(f"{subject.name}.html")
+
 
 if __name__ == "__main__":
     print('尝试登陆中······')
@@ -73,5 +76,5 @@ if __name__ == "__main__":
         errorbookHtml = fullTemplate(FullModel(zxw.name, subject.name, cur_exam.name, cur_subject_rank, error_book))
         with open(f"{subject.name}.html", 'w', encoding='utf-8') as f:
             f.write(errorbookHtml)
-        htmlToPdf(f"{subject.name}.html",subject)
+        htmlToPdf(f"{subject.name}.html", subject)
     clean(subjects)

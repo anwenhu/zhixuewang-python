@@ -13,7 +13,7 @@ def _(self):
             score += subject.score * 0.7
         elif subject.subject.name == "英语":
             score += subject.score * 0.5
-    return f"加权后的分数为: {score}"     # 权重: 语文 0.8; 数学 0.7; 英语 0.5; 其他科 0
+    return f"加权后的分数为: {score}"  # 权重: 语文 0.8; 数学 0.7; 英语 0.5; 其他科 0
 
 
 if __name__ == "__main__":
