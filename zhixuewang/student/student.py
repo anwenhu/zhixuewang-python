@@ -572,10 +572,11 @@ class StudentAccount(Account, StuPerson):
         for each in data["result"]["list"]:
             each_mark = mark.find(lambda t: t.subject.code == each["subjectCode"])
             if each_mark is not None:
-                if each["myRank"] == 0:
-                    each_mark.class_rank = 1
-                else:
-                    each_mark.class_rank = math.ceil(each["myRank"] / 100 * num)
+                # if each["myRank"] == 0:
+                #     each_mark.class_rank = 1
+                # else:
+                #     each_mark.class_rank = math.ceil(each["myRank"] / 100 * num)
+                each_mark.class_rank = round(num - (100 - each["myRank"]) / 100 * (num - 1))
 
     def get_errorbook(self, exam_id, subject_id: str) -> List[ErrorBookTopic]:
         r = self._session.get(
