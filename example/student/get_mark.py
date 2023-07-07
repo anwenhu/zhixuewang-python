@@ -1,9 +1,7 @@
-### 获取成绩
+# 获取成绩
 from zhixuewang import login_student
 from getpass import getpass
 import os
-
-
 
 if __name__ == "__main__":
     username = input("请输入用户名:")
