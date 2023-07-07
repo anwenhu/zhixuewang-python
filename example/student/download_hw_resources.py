@@ -5,7 +5,7 @@ import time
 
 username = ""
 password = ""
-path = "" 
+path = ""
 
 zxw = login_student(username, password)
 ids = []
@@ -17,5 +17,3 @@ while True:
                 resource.download(path)
             ids.append(homework.id)
     time.sleep(60)
-
-            

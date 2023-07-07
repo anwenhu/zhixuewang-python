@@ -235,7 +235,7 @@ class Mark(ExtendedList[SubjectScore]):
     """一场考试的成绩"""
 
     def __init__(
-        self, l: list = list(), exam: Exam = Exam(), person: StuPerson = StuPerson()
+            self, l: list = list(), exam: Exam = Exam(), person: StuPerson = StuPerson()
     ):
         super().__init__(l)
         self.exam = exam

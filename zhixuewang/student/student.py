@@ -33,9 +33,9 @@ from zhixuewang.student.urls import Url
 def _check_is_uuid(msg: str):
     """判断msg是否为uuid"""
     return (
-        len(msg) == 36
-        and msg[14] == "4"
-        and msg[8] == msg[13] == msg[18] == msg[23] == "-"
+            len(msg) == 36
+            and msg[14] == "4"
+            and msg[8] == msg[13] == msg[18] == msg[23] == "-"
     )
 
 
@@ -43,7 +43,6 @@ def _md5_encode(msg: str) -> str:
     md5 = hashlib.md5()
     md5.update(msg.encode(encoding="utf-8"))
     return md5.hexdigest()
-
 
 
 class StudentAccount(Account, StuPerson):
@@ -256,7 +255,7 @@ class StudentAccount(Account, StuPerson):
         return mark
 
     def get_self_mark(
-        self, exam_data: Union[Exam, str] = "", has_total_score: bool = True
+            self, exam_data: Union[Exam, str] = "", has_total_score: bool = True
     ) -> Mark:
         """获取指定考试的成绩
 
@@ -319,7 +318,7 @@ class StudentAccount(Account, StuPerson):
         return subject
 
     def get_subject(
-        self, subject_data: Union[Subject, str], exam_data: Union[Exam, str] = ""
+            self, subject_data: Union[Subject, str], exam_data: Union[Exam, str] = ""
     ) -> Subject:
         """获取指定考试的学科
 
@@ -359,7 +358,7 @@ class StudentAccount(Account, StuPerson):
         return image_urls
 
     def get_original(
-        self, subject_data: Union[Subject, str], exam_data: Union[Exam, str] = ""
+            self, subject_data: Union[Subject, str], exam_data: Union[Exam, str] = ""
     ) -> List[str]:
         """获得指定考试学科的原卷地址
 
@@ -448,7 +447,7 @@ class StudentAccount(Account, StuPerson):
         return classmates
 
     def get_classmates(
-        self, clazz_data: Union[StuClass, str] = ""
+            self, clazz_data: Union[StuClass, str] = ""
     ) -> ExtendedList[StuPerson]:
         """获取指定班级里学生列表
 
@@ -464,11 +463,11 @@ class StudentAccount(Account, StuPerson):
         return self.__get_classmates(clazz.id)
 
     def get_homeworks(
-        self,
-        size: int = 20,
-        is_complete: bool = False,
-        subject_code: str = "-1",
-        createTime: int = 0,
+            self,
+            size: int = 20,
+            is_complete: bool = False,
+            subject_code: str = "-1",
+            createTime: int = 0,
     ) -> ExtendedList[StuHomework]:
         """获取指定数量的作业(暂时不支持获取所有作业)
 
@@ -586,8 +585,8 @@ class StudentAccount(Account, StuPerson):
         )
         data = r.json()
         if (
-            data["errorCode"] != 0
-        ):  #  {'errorCode': 40217, 'errorInfo': '暂时未收集到试题信息,无法查看', 'result': ''}
+                data["errorCode"] != 0
+        ):  # {'errorCode': 40217, 'errorInfo': '暂时未收集到试题信息,无法查看', 'result': ''}
             raise Exception(data)
         result = []
         for each in data["result"]["wrongTopicAnalysis"]["topicList"]:
