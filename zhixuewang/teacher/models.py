@@ -11,7 +11,10 @@ from zhixuewang.models import (
 class TeacherRole(Enum):
     TEACHER = "老师"
     HEADMASTER = "校长"
+    HEADTEACHER = "班主任"
+    SCHOOL_ADMINISTRATOR = "校管理员"
     GRADE_DIRECTER = "年级组长"
+    SUBJECT_LEADER = "备课组长"
 
     def __str__(self):
         return self._value_
