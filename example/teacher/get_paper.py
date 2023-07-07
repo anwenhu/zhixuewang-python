@@ -1,4 +1,4 @@
-from zhixuewang import login
+from zhixuewang import login_student, login_teacher
 import os
 
 if __name__ == "__main__":
@@ -12,8 +12,8 @@ if __name__ == "__main__":
     print("学生密码是：")
     stupwd = input()
 
-    teacher = login(uname, upwd)
-    student = login(stuname, stupwd)
+    teacher = login_teacher(uname, upwd)
+    student = login_student(stuname, stupwd)
     while True:
         print("保存位置：")
         save = input()

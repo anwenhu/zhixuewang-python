@@ -1,9 +1,9 @@
 from zhixuewang import rewrite_str, login_student
+from zhixuewang.models import Mark
 from getpass import getpass
-import zhixuewang
 
 
-@rewrite_str(zhixuewang.models.Mark)
+@rewrite_str(Mark)
 def _(self):
     score = 0
     for subject in self:

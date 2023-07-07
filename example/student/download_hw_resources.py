@@ -1,4 +1,4 @@
-### 自动下载智学网作业资源
+# 自动下载智学网作业资源
 
 from zhixuewang import login_student
 import time

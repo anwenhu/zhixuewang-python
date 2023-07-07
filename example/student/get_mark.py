@@ -1,4 +1,4 @@
-### 获取成绩
+# 获取成绩
 from zhixuewang import login_student
 from getpass import getpass
 import os

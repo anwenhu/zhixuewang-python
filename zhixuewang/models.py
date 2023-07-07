@@ -54,8 +54,8 @@ T = TypeVar("T")
 class ExtendedList(List[T]):
     """扩展列表, 方便找到列表里的元素"""
 
-    def __init__(self, l: List[T] = list()):
-        super().__init__(l or list())
+    def __init__(self, ls: List[T] = None):
+        super().__init__(list() if ls is None else ls)
 
     def foreach(self, f: Callable[[T], None]):
         for each in self:
@@ -82,13 +82,13 @@ class ExtendedList(List[T]):
         """返回列表里所有特定名字的元素"""
         return self.find_all(lambda d: d.name == name)
 
-    def find_by_id(self, id: str) -> Union[T, None]:
+    def find_by_id(self, spec_id: str) -> Union[T, None]:
         """返回列表里第一个特定id的元素, 没有则返回None"""
-        return self.find(lambda d: d.id == id)
+        return self.find(lambda d: d.id == spec_id)
 
-    def find_all_by_id(self, id: str) -> "ExtendedList[T]":
+    def find_all_by_id(self, spec_id: str) -> "ExtendedList[T]":
         """返回列表里所有特定id的元素"""
-        return self.find_all(lambda d: d.id == id)
+        return self.find_all(lambda d: d.id == spec_id)
 
 
 @dataclass
@@ -235,9 +235,10 @@ class Mark(ExtendedList[SubjectScore]):
     """一场考试的成绩"""
 
     def __init__(
-            self, l: list = list(), exam: Exam = Exam(), person: StuPerson = StuPerson()
+            self, ls: list = None, exam: Exam = Exam(), person: StuPerson = StuPerson()
     ):
-        super().__init__(l)
+
+        super().__init__([] if ls is None else ls)
         self.exam = exam
         self.person = person
 
