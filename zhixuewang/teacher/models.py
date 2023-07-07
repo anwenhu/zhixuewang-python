@@ -21,7 +21,7 @@ class TeaPerson(Person):
     def __init__(
             self,
             name: str = "",
-            # id: str = "",
+            id: str = "",
             gender: Sex = Sex.GIRL,
             mobile: str = "",
             avatar: str = "",
