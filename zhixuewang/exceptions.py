@@ -38,5 +38,3 @@ class ArgError(Error):
 class PageConnectionError(Error):
     def __init__(self, value):
         self.value = value
-
-

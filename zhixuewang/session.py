@@ -41,7 +41,7 @@ def get_session(username: str, password: str, _type: str = "auto") -> requests.S
             )
             .to_bytes(16, "big")
             .hex()
-        )  ### by immoses648
+        )  # by immoses648
     session = get_basic_session()
     r = session.get(Url.SSO_URL)
     json_obj = json.loads(r.text.strip().replace("\\", "").replace("'", "")[1:-1])

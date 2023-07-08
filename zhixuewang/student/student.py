@@ -1,12 +1,12 @@
 import hashlib
 import json
-import math
+# import math
 import time
 import uuid
 from typing import List, Tuple, Union
 from zhixuewang.models import (
     Account,
-    BasicSubject,
+    # BasicSubject,
     ErrorBookTopic,
     ExtendedList,
     Exam,
@@ -33,9 +33,9 @@ from zhixuewang.student.urls import Url
 def _check_is_uuid(msg: str):
     """判断msg是否为uuid"""
     return (
-        len(msg) == 36
-        and msg[14] == "4"
-        and msg[8] == msg[13] == msg[18] == msg[23] == "-"
+            len(msg) == 36
+            and msg[14] == "4"
+            and msg[8] == msg[13] == msg[18] == msg[23] == "-"
     )
 
 
@@ -45,13 +45,16 @@ def _md5_encode(msg: str) -> str:
     return md5.hexdigest()
 
 
-
 class StudentAccount(Account, StuPerson):
     """学生账号"""
 
     def __init__(self, session):
         super().__init__(session, Role.student)
-        self._token_timestamp = ["", 0]
+        # self._token_timestamp = ["", 0]
+        self._auth = {
+            "token": "",
+            "timestamp": 0.0
+        }
         self.exams: ExtendedList[Exam] = ExtendedList()
 
     def _get_auth_header(self) -> dict:
@@ -60,7 +63,8 @@ class StudentAccount(Account, StuPerson):
         auth_guid = str(uuid.uuid4())
         auth_time_stamp = str(int(time.time() * 1000))
         auth_token = _md5_encode(auth_guid + auth_time_stamp + "iflytek!@#123student")
-        token, cur_time = self._token_timestamp
+        # token, cur_time = self._token_timestamp
+        token, cur_time = self._auth["token"], self._auth["timestamp"]
         if token and time.time() - cur_time < 600:  # 判断token是否过期
             return {
                 "authbizcode": "0001",
@@ -80,8 +84,10 @@ class StudentAccount(Account, StuPerson):
         )
         if not r.ok:
             raise PageConnectionError(f"_get_auth_header中出错, 状态码为{r.status_code}")
-        self._token_timestamp[0] = r.json()["result"]
-        self._token_timestamp[1] = time.time()
+        # self._token_timestamp[0] = r.json()["result"]
+        self._auth["token"] = r.json()["result"]
+        # self._token_timestamp[1] = time.time()
+        self._auth["timestamp"] = time.time()
         return self._get_auth_header()
 
     def set_base_info(self):
@@ -157,8 +163,8 @@ class StudentAccount(Account, StuPerson):
             exam = Exam(id=exam_data["examId"], name=exam_data["examName"])
             exam.create_time = exam_data["examCreateDateTime"]
             exams.append(exam)
-        hasNextPage: bool = json_data["hasNextPage"]
-        return exams, hasNextPage
+        has_next_page: bool = json_data["hasNextPage"]
+        return exams, has_next_page
 
     def get_latest_exam(self) -> Exam:
         """获取最新考试"""
@@ -256,7 +262,7 @@ class StudentAccount(Account, StuPerson):
         return mark
 
     def get_self_mark(
-        self, exam_data: Union[Exam, str] = "", has_total_score: bool = True
+            self, exam_data: Union[Exam, str] = "", has_total_score: bool = True
     ) -> Mark:
         """获取指定考试的成绩
 
@@ -319,7 +325,7 @@ class StudentAccount(Account, StuPerson):
         return subject
 
     def get_subject(
-        self, subject_data: Union[Subject, str], exam_data: Union[Exam, str] = ""
+            self, subject_data: Union[Subject, str], exam_data: Union[Exam, str] = ""
     ) -> Subject:
         """获取指定考试的学科
 
@@ -359,7 +365,7 @@ class StudentAccount(Account, StuPerson):
         return image_urls
 
     def get_original(
-        self, subject_data: Union[Subject, str], exam_data: Union[Exam, str] = ""
+            self, subject_data: Union[Subject, str], exam_data: Union[Exam, str] = ""
     ) -> List[str]:
         """获得指定考试学科的原卷地址
 
@@ -440,7 +446,7 @@ class StudentAccount(Account, StuPerson):
                     ),
                 ),
                 code=classmate_data.get("code"),
-                email=classmate_data["email"],
+                # email=classmate_data["email"],
                 gender=Sex.BOY if classmate_data["gender"] == "1" else Sex.GIRL,
                 mobile=classmate_data["mobile"],
             )
@@ -448,7 +454,7 @@ class StudentAccount(Account, StuPerson):
         return classmates
 
     def get_classmates(
-        self, clazz_data: Union[StuClass, str] = ""
+            self, clazz_data: Union[StuClass, str] = ""
     ) -> ExtendedList[StuPerson]:
         """获取指定班级里学生列表
 
@@ -464,11 +470,11 @@ class StudentAccount(Account, StuPerson):
         return self.__get_classmates(clazz.id)
 
     def get_homeworks(
-        self,
-        size: int = 20,
-        is_complete: bool = False,
-        subject_code: str = "-1",
-        createTime: int = 0,
+            self,
+            size: int = 20,
+            is_complete: bool = False,
+            subject_code: str = "-1",
+            create_time: int = 0,
     ) -> ExtendedList[StuHomework]:
         """获取指定数量的作业(暂时不支持获取所有作业)
 
@@ -476,7 +482,7 @@ class StudentAccount(Account, StuPerson):
             size (int): 返回的数量
             is_complete (bool): True 表示取已完成的作业, False 表示取未完成的作业
             subject_code (code): "01" 表示取语文作业, "02"表示取数学作业, 以此类推
-            createTime (int): 取创建时间在多久以前的作业, 0表示从最新取 (暂时用不到)
+            create_time (int): 取创建时间在多久以前的作业, 0表示从最新取 (暂时用不到)
         Returns:
             ExtendedList[StuHomework]: 作业(不包含作业资源)
         """
@@ -489,7 +495,7 @@ class StudentAccount(Account, StuPerson):
                 "pageSize": size,  # 取几个
                 "subjectCode": subject_code,
                 "token": self._get_auth_header()["XToken"],
-                "createTime": createTime,  # 创建时间在多久以前的 0 为从最新开始
+                "createTime": create_time,  # 创建时间在多久以前的 0 为从最新开始
             },
         )
         homeworks: ExtendedList[StuHomework] = ExtendedList()
@@ -506,9 +512,9 @@ class StudentAccount(Account, StuPerson):
                     begin_time=each["beginTime"] / 1000,
                     end_time=each["endTime"] / 1000,
                     create_time=each["createTime"] / 1000,
-                    subject=BasicSubject(
-                        name=each["subjectName"], code=each["subjectCode"]
-                    ),
+                    # subject=BasicSubject(
+                    #     name=each["subjectName"], code=each["subjectCode"]
+                    # ),
                     is_allow_makeup=bool(each["isAllowMakeup"]),
                     class_id=each["classId"],
                     stu_hwid=each["stuHwId"],
@@ -572,10 +578,11 @@ class StudentAccount(Account, StuPerson):
         for each in data["result"]["list"]:
             each_mark = mark.find(lambda t: t.subject.code == each["subjectCode"])
             if each_mark is not None:
-                if each["myRank"] == 0:
-                    each_mark.class_rank = 1
-                else:
-                    each_mark.class_rank = math.ceil(each["myRank"] / 100 * num)
+                # if each["myRank"] == 0:
+                #     each_mark.class_rank = 1
+                # else:
+                #     each_mark.class_rank = math.ceil(each["myRank"] / 100 * num)
+                each_mark.class_rank = round(num - (100 - each["myRank"]) / 100 * (num - 1))
 
     def get_errorbook(self, exam_id, subject_id: str) -> List[ErrorBookTopic]:
         r = self._session.get(
@@ -585,8 +592,8 @@ class StudentAccount(Account, StuPerson):
         )
         data = r.json()
         if (
-            data["errorCode"] != 0
-        ):  #  {'errorCode': 40217, 'errorInfo': '暂时未收集到试题信息,无法查看', 'result': ''}
+                data["errorCode"] != 0
+        ):  # {'errorCode': 40217, 'errorInfo': '暂时未收集到试题信息,无法查看', 'result': ''}
             raise Exception(data)
         result = []
         for each in data["result"]["wrongTopicAnalysis"]["topicList"]:

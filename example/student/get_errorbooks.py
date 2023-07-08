@@ -1,5 +1,5 @@
-### 获取智学网错题本
-### TODO: 字体大小不一致
+# 获取智学网错题本
+# TODO: 字体大小不一致
 # 以下代码参考: https://github.com/RICHARDCJ249/zhixue_errorbook
 
 from zhixuewang import login_student
@@ -9,8 +9,7 @@ import datetime
 from zhixuewang.account import load_account
 import subprocess
 
-
-WKHTMLTOPDF_PATH = r'wkhtmltopdf.exe' # wkhtmltopdf 地址
+WKHTMLTOPDF_PATH = r'wkhtmltopdf.exe'  # wkhtmltopdf 地址
 if not os.path.exists("wkhtmltopdf.exe"):
     print("请在网上下载wkhtmltopdf.exe后放到本目录")
     exit()
@@ -19,28 +18,32 @@ if not os.path.exists("wkhtmltopdf.exe"):
 PRARMETER_PDF = '--page-size "B5" --margin-top "0.25in" --margin-right "0.25in" --margin-bottom "0.25in" --margin-left "0.3in" --encoding "UTF-8" --no-outline --footer-center "·[page]·"'
 
 
-class FullModel():
-    def __init__(self, name, subjectName, examName, rank, errorbook):
+class FillModel:
+    def __init__(self, name, subject_name, exam_name, rank, errorbook):
         self.name = name
-        self.subjectName = subjectName
-        self.examName = examName
+        self.subjectName = subject_name
+        self.examName = exam_name
         self.rank = rank
         self.errorbooks = errorbook
 
-def fullTemplate(model):
+
+def fill_template(model):
     env = jinja2.Environment(loader=jinja2.FileSystemLoader("./"))
     tep = env.get_template("errorbook_templates.html")
     return tep.render(model=model)
 
-def htmlToPdf(file_name, subject):
-    name = f"{subject.name}-{datetime.datetime.now().strftime('%Y-%m-%d')}-错题本.pdf"
+
+def html_to_pdf(file_name, a_subject):
+    name = f"{a_subject.name}-{datetime.datetime.now().strftime('%Y-%m-%d')}-错题本.pdf"
     command = f'{WKHTMLTOPDF_PATH} {PRARMETER_PDF} {file_name} {name}'
     subprocess.run(command, shell=True)
 
-def clean(subjects):
-    for subject in subjects:
-        if os.path.exists(f"{subject.name}.html"):
-            os.remove(f"{subject.name}.html")
+
+def clean(b_subjects):
+    for each_subject in b_subjects:
+        if os.path.exists(f"{each_subject.name}.html"):
+            os.remove(f"{each_subject.name}.html")
+
 
 if __name__ == "__main__":
     print('尝试登陆中······')
@@ -70,8 +73,8 @@ if __name__ == "__main__":
             error_book = zxw.get_errorbook(cur_exam.id, subject.id)
         except Exception:
             continue
-        errorbookHtml = fullTemplate(FullModel(zxw.name, subject.name, cur_exam.name, cur_subject_rank, error_book))
+        errorbookHtml = fill_template(FillModel(zxw.name, subject.name, cur_exam.name, cur_subject_rank, error_book))
         with open(f"{subject.name}.html", 'w', encoding='utf-8') as f:
             f.write(errorbookHtml)
-        htmlToPdf(f"{subject.name}.html",subject)
+        html_to_pdf(f"{subject.name}.html", subject)
     clean(subjects)

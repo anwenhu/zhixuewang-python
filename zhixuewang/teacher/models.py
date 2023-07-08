@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from zhixuewang.models import (
     Person,
-    School,
+    # School,
     StuClass,
     Sex,
 )
@@ -22,14 +22,14 @@ class TeacherRole(Enum):
 
 class TeaPerson(Person):
     def __init__(
-        self,
-        name: str = "",
-        id: str = "",
-        gender: Sex = Sex.GIRL,
-        mobile: str = "",
-        avatar: str = "",
-        code: str = "",
-        clazz: StuClass = None,
+            self,
+            name: str = "",
+            id: str = "",
+            gender: Sex = Sex.GIRL,
+            mobile: str = "",
+            avatar: str = "",
+            code: str = "",
+            clazz: StuClass = None,
     ):
         super().__init__(name, id, gender, mobile, avatar)
         self.code = code

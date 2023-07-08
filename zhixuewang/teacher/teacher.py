@@ -43,6 +43,7 @@ class TeacherAccount(Account, TeaPerson):
 
     def __init__(self, session):
         super().__init__(session, Role.teacher)
+        self.roles = None
         self._token = None
 
     def set_base_info(self):
@@ -89,7 +90,7 @@ class TeacherAccount(Account, TeaPerson):
         return self
 
     async def __get_school_exam_classes(
-        self, school_id: str, subject_id: str
+            self, school_id: str, subject_id: str
     ) -> List[StuClass]:
         async with httpx.AsyncClient(cookies=self._session.cookies) as client:
             r = await client.get(
@@ -139,25 +140,25 @@ class TeacherAccount(Account, TeaPerson):
 
 
     def get_school_exam_classes(
-        self, school_id: str, subject_id: str
+            self, school_id: str, subject_id: str
     ) -> List[StuClass]:
         self.update_login_status()
         return asyncio.run(self.__get_school_exam_classes(school_id, subject_id))
 
-    def get_original_paper(self, userId: str, paperId: str, saveToPath: str) -> bool:
+    def get_original_paper(self, user_id: str, paper_id: str, save_to_path: str) -> bool:
         """
         获得原卷
         Args:
-            userId (str): 为需要查询原卷的userId
-            paperId (str): 为需要查询的学科ID(topicSetId)
-            saveToPath (str): 为原卷保存位置(html文件), 精确到文件名
+            user_id (str): 为需要查询原卷的userId
+            paper_id (str): 为需要查询的学科ID(topicSetId)
+            save_to_path (str): 为原卷保存位置(html文件), 精确到文件名
         Return:
             bool: 正常会返回True
         """
         data = self._session.get(
-            Url.ORIGINAL_PAPER_URL, params={"userId": userId, "paperId": paperId}
+            Url.ORIGINAL_PAPER_URL, params={"userId": user_id, "paperId": paper_id}
         )
-        with open(saveToPath, encoding="utf-8", mode="w+") as fhandle:
+        with open(save_to_path, encoding="utf-8", mode="w+") as fhandle:
             fhandle.writelines(
                 data.text.replace("//static.zhixue.com", "https://static.zhixue.com")
             )
@@ -238,8 +239,8 @@ class TeacherAccount(Account, TeaPerson):
         return exam
 
     def get_marking_progress(
-        self,
-        subject_id: str,
+            self,
+            subject_id: str,
     ) -> List[MarkingProgress]:
         """
         获取某场考试指定科目阅卷情况

@@ -8,11 +8,11 @@ setup(
     description="智学网的api",
     license="MIT",
 
-    author="anwenhu",
+    author="anwenhu,MasterYuan418,immoses648",
     author_email="anemailpocket@163.com",
 
     packages=find_packages(),
     include_package_data=True,
     platforms="any",
-    install_requires=["requests", "httpx"],
+    install_requires=["requests", "httpx"]
 )

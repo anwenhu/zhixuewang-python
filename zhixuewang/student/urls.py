@@ -32,7 +32,7 @@ class Url:
     # Homework
     GET_HOMEWORK_URL = f"{APP_BASE_URL}/homework_middle_service/stuapp/getStudentHomeWorkList"
     GET_HOMEWORK_RESOURCE_URL = f"{APP_BASE_URL}/hw/manage/homework/redeploy"
-    
+
     GET_EXAM_LEVEL_TREND_URL = f"{BASE_URL}/zhixuebao/report/exam/getLevelTrend"
 
     GET_PAPER_LEVEL_TREND_URL = f"{BASE_URL}/zhixuebao/report/paper/getLevelTrend"

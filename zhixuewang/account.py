@@ -1,5 +1,3 @@
-
-
 import base64
 import pickle
 from zhixuewang.exceptions import RoleError
@@ -7,6 +5,7 @@ from zhixuewang.models import Account, AccountData, Role
 from zhixuewang.session import check_is_student, get_session, get_session_id
 from zhixuewang.student.student import StudentAccount
 from zhixuewang.teacher.teacher import TeacherAccount
+
 
 def load_account(path: str = "user.data") -> Account:
     with open(path, "rb") as f:
@@ -101,7 +100,6 @@ def login_teacher(username: str, password: str) -> TeacherAccount:
     return teacher.set_base_info()
 
 
-
 def login_id(user_id: str, password: str) -> Account:
     """通过用户id和密码登录智学网
 
@@ -161,6 +159,7 @@ def rewrite_str(model):
         >>> print(School("test id", "test school"))
         <id: test id, name: test school>
     """
+
     def str_decorator(func):
         model.__str__ = func
         return func
