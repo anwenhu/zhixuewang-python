@@ -10,6 +10,9 @@ from zhixuewang.models import (
     School,
     StuClass,
     Subject,
+    Grade,
+    TextBook,
+    StuPerson
 )
 from zhixuewang.teacher.models import (
     MarkingProgress,
@@ -20,6 +23,23 @@ from zhixuewang.teacher.urls import Url
 
 class TeacherAccount(Account, TeaPerson):
     """老师账号"""
+
+ 
+    #! Advanced Information
+    currentTeachClasses: list = []
+    """当前教授的班级"""
+    inProvince: str = None
+    """教师所在的省份"""
+    inCity: str = None
+    """教师所在的城市"""
+    currentSubject: Subject = None
+    """当前教授的学科"""
+    currentTeachingGrade: Grade = None
+    """当前教授的年级"""
+    currentTeachingTextbook: TextBook = None
+    """当前使用的教科书"""
+    currentSchool: School = None
+    """当前的学校"""
 
     def __init__(self, session):
         super().__init__(session, Role.teacher)
@@ -37,6 +57,35 @@ class TeacherAccount(Account, TeaPerson):
         self.mobile = json_data.get("mobile")
         self.name = json_data.get("name")
         self.roles = json_data["roles"]
+
+        advanced_info = self._session.get(
+            Url.GET_ADVANCED_INFORMATION_URL,
+            headers={
+                "referer": "https://www.zhixue.com/paperfresh/dist/assets/expertPaper.html"
+            }
+        )
+
+        adv_result = advanced_info.json()['result']
+        self.inProvince = adv_result['province']['name']
+        self.inCity = adv_result['city']['name']
+        self.currentSchool = School(name = adv_result['school']['name'], id = adv_result['school']['id'])
+        self.currentSubject = Subject(adv_result['curSubject']['name'], code = adv_result['curSubject']['code'])
+        self.currentTeachingGrade = Grade(adv_result['grade']['name'], code = adv_result['grade']['code'])
+        self.currentTeachingTextbook = TextBook(
+            code = adv_result['textBookVersion']['code'],
+            name = adv_result['textBookVersion']['name'],
+            version = adv_result['bookVersion']['name'],
+            versionCode = adv_result['bookVersion']['code'],
+            #!TODO 暂无法通过对应的Code获取学科，暂时使用教师绑定的学科
+            bindSubject = self.currentSubject)
+        teacGrade: Grade = None
+        for i in adv_result['curTeachingGrades']:
+            teacGrade = Grade(name = i['name'], code = i['code'])
+            for j in i['clazzs']:
+                #!TODO 暂无法获取班级所在学校，暂时使用教师绑定的学校
+                self.currentTeachClasses.append(StuClass(id = j['code'], name = j['name'], grade = teacGrade, school = self.currentSchool))
+            # 清空grade缓存
+            teacGrade = None
         return self
 
     async def __get_school_exam_classes(
@@ -61,6 +110,33 @@ class TeacherAccount(Account, TeaPerson):
                     )
                 )
             return classes
+
+
+    def get_student_status(self, clazzId: str, subjectCode: int, gradeCode: int, roleType: str = "teacher"):
+        """获取学生信息（如进步，退步等），返回临近生，下滑生，波动生"""
+        self.update_login_status()
+        r = self._session.get(
+            Url.GET_STUDENT_STATUS_URL,
+            headers={
+                "referers": "https://www.zhixue.com/api-teacher/home/index"
+            },
+            params={"roleType": roleType, "gradeCode": str(gradeCode), "classId": clazzId, "subjectCode": str(subjectCode)},
+        )
+        data = r.json()['result']
+        critical_student: list = [] # 临近生
+        backword_student: list = [] # 下滑
+        unstable_student: list = [] # 波动
+        if data['criticalStudents'] != None:
+            for i in data['criticalStudents']:
+                critical_student.append(StuPerson(id = i['userId'], name = i['userName']))
+        if data['backwordStudents'] != None:
+            for i in data['backwordStudents']:
+                backword_student.append(StuPerson(id = i['userId'], name = i['userName']))
+        if data['unstableStudents'] != None:
+            for i in data['unstableStudents']:
+                unstable_student.append(StuPerson(id = i['userId'], name = i['userName']))
+        return (critical_student, backword_student, unstable_student)
+
 
     def get_school_exam_classes(
         self, school_id: str, subject_id: str
