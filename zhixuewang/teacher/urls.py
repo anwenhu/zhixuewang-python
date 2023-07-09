@@ -21,3 +21,6 @@ class Url:
     # 后必须接上paperId
     # ORIGINAL_PAPER_URL = f"{BASE_URL}/classreport/class/student/checksheet/?userId="
     ORIGINAL_PAPER_URL = f"{BASE_URL}/classreport/class/student/checksheet/"
+
+    GET_ADVANCED_INFORMATION_URL = f"{BASE_URL}/paperfresh/api/common/getCurrentUser"
+    GET_STUDENT_STATUS_URL = f"{BASE_URL}/api-teacher/home/getStudentStatus"
