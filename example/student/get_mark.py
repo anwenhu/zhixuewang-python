@@ -29,7 +29,7 @@ if __name__ == "__main__":
         i = int(i)
         exam = exams[i]
         print("成绩为:")
-        print(zxw.get_self_mark())
+        print(zxw.get_self_mark(exam))
         while True:
             b = input("是否再次查询(Y为是,N为不是)").strip()
             if b != "Y" and b != "N":
