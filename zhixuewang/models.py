@@ -180,8 +180,7 @@ class Subject(BasicSubject):
     status: str = field(default="", repr=False)
     exam_id: str = field(default="", repr=False)
     create_user: Person = field(default_factory=Person, repr=False)
-    _create_timestamp: float = field(default=0, repr=False)
-    create_time = get_property("_create_timestamp")
+    create_time: float = field(default=0, repr=False)
 
     def __eq__(self, other):
         return type(other) == type(self) and other.id == self.id
@@ -215,8 +214,7 @@ class Exam:
     subjects: ExtendedList[Subject] = field(default_factory=ExtendedList, repr=False)
     schools: ExtendedList[School] = field(default_factory=ExtendedList, repr=False)
     create_user: Person = field(default_factory=Person, repr=False)
-    _create_timestamp: float = field(default=0, repr=False)
-    create_time = get_property("_create_timestamp")
+    create_time: float = field(default=0, repr=False)
     class_rank: int = field(default=0, repr=False)
     grade_rank: int = field(default=0, repr=False)
     is_final: bool = False
