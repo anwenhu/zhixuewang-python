@@ -66,7 +66,6 @@ class TeacherAccount(Account, TeaPerson):
                 "referer": "https://www.zhixue.com/paperfresh/dist/assets/expertPaper.html"
             },
         )
-
         adv_result = advanced_info.json()["result"]
         self.inProvince = adv_result["province"]["name"]
         self.inCity = adv_result["city"]["name"]
@@ -317,8 +316,8 @@ class TeacherAccount(Account, TeaPerson):
                 "searchType": "schoolYearType",
                 "circlesYear": "",
                 "examTypeCode": "all",
-                "termId": "",
-                "teachingCycleId": "",
+                "termId": "3feef3b1-a921-450e-a007-2e1d0bef7ba1",
+                "teachingCycleId": "150ae8ea-a5ec-439b-957b-f27205f672b4",
                 "startTime": int(start_time.timestamp() * 1000),
                 "endTime": int(end_time.timestamp() * 1000),
                 "pageSize": page_size,
@@ -327,6 +326,8 @@ class TeacherAccount(Account, TeaPerson):
         )
         exams = []
         data = r.json()["result"]
+        if "classPaperSummaryList" not in data:
+            return PageExam([], page_index, page_size, 0, False)
         for each in data["classPaperSummaryList"]:
             exams.append(
                 Exam(
