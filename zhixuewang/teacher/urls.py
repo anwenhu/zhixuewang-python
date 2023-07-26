@@ -14,6 +14,7 @@ class Url:
     GET_REPORT_URL = f"{BASE_URL}/exportpaper/class/getExportStudentInfo"
     GET_MARKING_PROGRESS_URL = f"{BASE_URL}/marking/marking/markingProgressDetail"
 
+    GET_EXAMS_URL = f"{BASE_URL}/api-classreport/class/classReportList/"
     GET_EXAM_DETAIL_URL = f"{BASE_URL}/scanmuster/cloudRec/scanrecognition"
 
     GET_EXAM_SCHOOLS_URL = f"{BASE_URL}/exam/marking/schoolClass"
