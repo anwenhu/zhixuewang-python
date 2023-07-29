@@ -19,6 +19,7 @@ from zhixuewang.teacher.models import (
     MarkingProgress,
     PageExam,
     TeaPerson,
+    AcademicInfo
 )
 from zhixuewang.teacher.urls import Url
 
@@ -69,6 +70,13 @@ class TeacherAccount(Account, TeaPerson):
         adv_result = advanced_info.json()["result"]
         self.inProvince = adv_result["province"]["name"]
         self.inCity = adv_result["city"]["name"]
+
+        if type(adv_result["school"]) == None \
+            or type(adv_result["curSubject"]) == None \
+            or type(adv_result["grade"]) == None \
+            or type(adv_result["textBookVersion"]) == None:
+            raise TypeError(f"教师高级信息传回空值，原始JSON数据为\n School: {adv_result['school']}\n curSubject: {adv_result['curSubject']}\n grade: {adv_result['grade']} \n textBook: {adv_result['textBookVersion']}")
+        
         self.currentSchool = School(
             name=adv_result["school"]["name"], id=adv_result["school"]["id"]
         )
@@ -286,6 +294,13 @@ class TeacherAccount(Account, TeaPerson):
                 )
             )
         return result
+
+    def get_academic_info(self) -> AcademicInfo:
+        r = self._session.get(
+            Url.GET_ACADEMIC_INFO_URL
+        )
+        data = r.json()["result"]
+        
 
     def get_exams(
         self,
