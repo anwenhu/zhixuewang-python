@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 from typing import List
 
 import httpx
@@ -12,10 +13,11 @@ from zhixuewang.models import (
     Subject,
     Grade,
     TextBook,
-    StuPerson
+    StuPerson,
 )
 from zhixuewang.teacher.models import (
     MarkingProgress,
+    PageExam,
     TeaPerson,
 )
 from zhixuewang.teacher.urls import Url
@@ -24,7 +26,6 @@ from zhixuewang.teacher.urls import Url
 class TeacherAccount(Account, TeaPerson):
     """老师账号"""
 
- 
     #! Advanced Information
     currentTeachClasses: list = []
     """当前教授的班级"""
@@ -63,34 +64,47 @@ class TeacherAccount(Account, TeaPerson):
             Url.GET_ADVANCED_INFORMATION_URL,
             headers={
                 "referer": "https://www.zhixue.com/paperfresh/dist/assets/expertPaper.html"
-            }
+            },
         )
-
-        adv_result = advanced_info.json()['result']
-        self.inProvince = adv_result['province']['name']
-        self.inCity = adv_result['city']['name']
-        self.currentSchool = School(name = adv_result['school']['name'], id = adv_result['school']['id'])
-        self.currentSubject = Subject(adv_result['curSubject']['name'], code = adv_result['curSubject']['code'])
-        self.currentTeachingGrade = Grade(adv_result['grade']['name'], code = adv_result['grade']['code'])
+        adv_result = advanced_info.json()["result"]
+        self.inProvince = adv_result["province"]["name"]
+        self.inCity = adv_result["city"]["name"]
+        self.currentSchool = School(
+            name=adv_result["school"]["name"], id=adv_result["school"]["id"]
+        )
+        self.currentSubject = Subject(
+            adv_result["curSubject"]["name"], code=adv_result["curSubject"]["code"]
+        )
+        self.currentTeachingGrade = Grade(
+            adv_result["grade"]["name"], code=adv_result["grade"]["code"]
+        )
         self.currentTeachingTextbook = TextBook(
-            code = adv_result['textBookVersion']['code'],
-            name = adv_result['textBookVersion']['name'],
-            version = adv_result['bookVersion']['name'],
-            versionCode = adv_result['bookVersion']['code'],
+            code=adv_result["textBookVersion"]["code"],
+            name=adv_result["textBookVersion"]["name"],
+            version=adv_result["bookVersion"]["name"],
+            versionCode=adv_result["bookVersion"]["code"],
             #!TODO 暂无法通过对应的Code获取学科，暂时使用教师绑定的学科
-            bindSubject = self.currentSubject)
+            bindSubject=self.currentSubject,
+        )
         teacGrade: Grade = None
-        for i in adv_result['curTeachingGrades']:
-            teacGrade = Grade(name = i['name'], code = i['code'])
-            for j in i['clazzs']:
+        for i in adv_result["curTeachingGrades"]:
+            teacGrade = Grade(name=i["name"], code=i["code"])
+            for j in i["clazzs"]:
                 #!TODO 暂无法获取班级所在学校，暂时使用教师绑定的学校
-                self.currentTeachClasses.append(StuClass(id = j['code'], name = j['name'], grade = teacGrade, school = self.currentSchool))
+                self.currentTeachClasses.append(
+                    StuClass(
+                        id=j["code"],
+                        name=j["name"],
+                        grade=teacGrade,
+                        school=self.currentSchool,
+                    )
+                )
             # 清空grade缓存
             teacGrade = None
         return self
 
     async def __get_school_exam_classes(
-            self, school_id: str, subject_id: str
+        self, school_id: str, subject_id: str
     ) -> List[StuClass]:
         async with httpx.AsyncClient(cookies=self._session.cookies) as client:
             r = await client.get(
@@ -112,40 +126,45 @@ class TeacherAccount(Account, TeaPerson):
                 )
             return classes
 
-
-    def get_student_status(self, clazzId: str, subjectCode: int, gradeCode: int, roleType: str = "teacher"):
+    def get_student_status(
+        self, clazzId: str, subjectCode: int, gradeCode: int, roleType: str = "teacher"
+    ):
         """获取学生信息（如进步，退步等），返回临近生，下滑生，波动生"""
         self.update_login_status()
         r = self._session.get(
             Url.GET_STUDENT_STATUS_URL,
-            headers={
-                "referers": "https://www.zhixue.com/api-teacher/home/index"
+            headers={"referers": "https://www.zhixue.com/api-teacher/home/index"},
+            params={
+                "roleType": roleType,
+                "gradeCode": str(gradeCode),
+                "classId": clazzId,
+                "subjectCode": str(subjectCode),
             },
-            params={"roleType": roleType, "gradeCode": str(gradeCode), "classId": clazzId, "subjectCode": str(subjectCode)},
         )
-        data = r.json()['result']
-        critical_student: list = [] # 临近生
-        backword_student: list = [] # 下滑
-        unstable_student: list = [] # 波动
-        if data['criticalStudents'] != None:
-            for i in data['criticalStudents']:
-                critical_student.append(StuPerson(id = i['userId'], name = i['userName']))
-        if data['backwordStudents'] != None:
-            for i in data['backwordStudents']:
-                backword_student.append(StuPerson(id = i['userId'], name = i['userName']))
-        if data['unstableStudents'] != None:
-            for i in data['unstableStudents']:
-                unstable_student.append(StuPerson(id = i['userId'], name = i['userName']))
+        data = r.json()["result"]
+        critical_student: list = []  # 临近生
+        backword_student: list = []  # 下滑
+        unstable_student: list = []  # 波动
+        if data["criticalStudents"] != None:
+            for i in data["criticalStudents"]:
+                critical_student.append(StuPerson(id=i["userId"], name=i["userName"]))
+        if data["backwordStudents"] != None:
+            for i in data["backwordStudents"]:
+                backword_student.append(StuPerson(id=i["userId"], name=i["userName"]))
+        if data["unstableStudents"] != None:
+            for i in data["unstableStudents"]:
+                unstable_student.append(StuPerson(id=i["userId"], name=i["userName"]))
         return (critical_student, backword_student, unstable_student)
 
-
     def get_school_exam_classes(
-            self, school_id: str, subject_id: str
+        self, school_id: str, subject_id: str
     ) -> List[StuClass]:
         self.update_login_status()
         return asyncio.run(self.__get_school_exam_classes(school_id, subject_id))
 
-    def get_original_paper(self, user_id: str, paper_id: str, save_to_path: str) -> bool:
+    def get_original_paper(
+        self, user_id: str, paper_id: str, save_to_path: str
+    ) -> bool:
         """
         获得原卷
         Args:
@@ -163,7 +182,7 @@ class TeacherAccount(Account, TeaPerson):
                 data.text.replace("//static.zhixue.com", "https://static.zhixue.com")
             )
         return True
-    
+
     def get_teacher_roleText(self) -> list:
         """
         获得教师的角色文本
@@ -188,6 +207,7 @@ class TeacherAccount(Account, TeaPerson):
                 str_roles.append("校管理员")
             else:
                 raise ValueError(f"教师角色{role}未知。已忽略。")
+
     def get_exam_subjects(self, exam_id: str) -> ExtendedList[Subject]:
         """
         获取某个考试的考试科目
@@ -239,8 +259,8 @@ class TeacherAccount(Account, TeaPerson):
         return exam
 
     def get_marking_progress(
-            self,
-            subject_id: str,
+        self,
+        subject_id: str,
     ) -> List[MarkingProgress]:
         """
         获取某场考试指定科目阅卷情况
@@ -252,7 +272,7 @@ class TeacherAccount(Account, TeaPerson):
         r = self._session.post(
             "https://pt-ali-bj-re.zhixue.com/marking/marking/markingTopicProgress/",
             data={"markingPaperId": subject_id},
-            headers={"token": self.get_token()}
+            headers={"token": self.get_token()},
         )
         data = r.json()
         result = []
@@ -266,6 +286,72 @@ class TeacherAccount(Account, TeaPerson):
                 )
             )
         return result
+
+    def get_exams(
+        self,
+        class_id: str = "all",
+        start_time: datetime = datetime(2020, 1, 1),
+        end_time: datetime = datetime.now(),
+        page_size: int = 15,
+        page_index: int = 1,
+    ) -> PageExam:
+        """
+        获取考试
+        Args:
+            class_id (str): 指定查看考试的班级, 默认为全部班级
+            start_time (datetime): 指定查看考试的开始时间, 默认为2020年1月1日
+            end_time (datetime): 指定查看考试的结束时间, 默认为现在
+            page_size (int): 指定一页考试数
+            page_index (int): 指定页数
+        Return:
+            PageExam: 考试信息和页数信息
+        """
+        r = self._session.get(
+            Url.GET_EXAMS_URL,
+            params={
+                "examName": "",
+                "gradeCode": "all",
+                "classId": class_id,
+                "subjectCode": "all",
+                "searchType": "schoolYearType",
+                "circlesYear": "",
+                "examTypeCode": "all",
+                "termId": "3feef3b1-a921-450e-a007-2e1d0bef7ba1",
+                "teachingCycleId": "150ae8ea-a5ec-439b-957b-f27205f672b4",
+                "startTime": int(start_time.timestamp() * 1000),
+                "endTime": int(end_time.timestamp() * 1000),
+                "pageSize": page_size,
+                "pageIndex": page_index,
+            },
+        )
+        exams = []
+        data = r.json()["result"]
+        if "classPaperSummaryList" not in data:
+            return PageExam([], page_index, page_size, 0, False)
+        for each in data["classPaperSummaryList"]:
+            exams.append(
+                Exam(
+                    id=each["data"]["examId"],
+                    name=each["data"]["examName"],
+                    grade_code=each["data"]["gradeCode"],
+                    subjects=ExtendedList(
+                        [
+                            Subject(name=one["name"])
+                            for one in each["zxSubjects"]
+                            if not one["isMultiSubject"]  # 排除复合学科如理综
+                        ]
+                    ),
+                    create_time=each["data"]["createDateTime"] / 1000,
+                    is_final=each["data"]["isFinal"]
+                )
+            )
+        return PageExam(
+            exams=exams,
+            page_index=page_index,
+            page_size=page_size,
+            all_pages=data["pageInfo"]["allPages"][-1],
+            has_next_page=page_index < data["pageInfo"]["allPages"][-1],
+        )
 
     def get_token(self) -> str:
         if self._token is not None:

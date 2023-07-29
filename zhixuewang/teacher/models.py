@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
+from typing import List
 from zhixuewang.models import (
+    Exam,
     Person,
     # School,
     StuClass,
@@ -42,3 +44,11 @@ class MarkingProgress:
     complete_rate: float
     complete_count: int
     all_count: int
+
+@dataclass
+class PageExam:
+    exams: List[Exam]
+    page_index: int
+    page_size: int
+    all_pages: int
+    has_next_page: bool
