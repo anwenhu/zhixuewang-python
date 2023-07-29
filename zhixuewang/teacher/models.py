@@ -52,3 +52,12 @@ class PageExam:
     page_size: int
     all_pages: int
     has_next_page: bool
+
+@dataclass
+class AcademicInfo:
+    termId: list
+    circlesYear: list
+    teachingCycleId: list
+    beginTime: list
+    endTime: list
+    schoolId: str
