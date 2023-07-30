@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
 from typing import List
-
+from requests import Response
 import httpx
 from zhixuewang.models import (
     Account,
@@ -19,6 +19,7 @@ from zhixuewang.teacher.models import (
     MarkingProgress,
     PageExam,
     TeaPerson,
+    AcademicInfo
 )
 from zhixuewang.teacher.urls import Url
 
@@ -69,6 +70,13 @@ class TeacherAccount(Account, TeaPerson):
         adv_result = advanced_info.json()["result"]
         self.inProvince = adv_result["province"]["name"]
         self.inCity = adv_result["city"]["name"]
+
+        if type(adv_result["school"]) == None \
+            or type(adv_result["curSubject"]) == None \
+            or type(adv_result["grade"]) == None \
+            or type(adv_result["textBookVersion"]) == None:
+            raise TypeError(f"教师高级信息传回空值，原始JSON数据为\n School: {adv_result['school']}\n curSubject: {adv_result['curSubject']}\n grade: {adv_result['grade']} \n textBook: {adv_result['textBookVersion']}")
+        
         self.currentSchool = School(
             name=adv_result["school"]["name"], id=adv_result["school"]["id"]
         )
@@ -287,44 +295,119 @@ class TeacherAccount(Account, TeaPerson):
             )
         return result
 
+    def get_academic_info(self) -> AcademicInfo:
+        """
+        获取学术信息用以获取教师考试
+        """
+        r = self._session.get(
+            Url.GET_AcademicTermTeachingCycle_URL
+        )
+        data = r.json()["result"]
+        acadinfo: AcademicInfo = AcademicInfo([], [], [], [], [], "")
+        acadinfo.schoolId = data["schoolId"]
+        for did in data['termTeachingCycleMap']:
+            d = data["termTeachingCycleMap"][did]
+            acadinfo.teachingCycleId.append(d[0]["id"]) # teachingCycleId
+            acadinfo.circlesYear.append(str(did)) # cicleYear
+            acadinfo.termId.append(d[0]["termId"]) # termId
+            acadinfo.beginTime.append(d[0]["beginTime"])
+            acadinfo.endTime.append(d[0]["endTime"]) #! 这两个都使用Unix时间戳，单位ms
+        return acadinfo
+
+
     def get_exams(
         self,
+        year: int,
+        academicInfo: AcademicInfo,
+        academicInfoUseIndex: str = "latest",
         class_id: str = "all",
-        start_time: datetime = datetime(2020, 1, 1),
-        end_time: datetime = datetime.now(),
+        examName: str = "",
+        gradeCode: str = "all",
+        subjectCode: str = "all",
+        examTypeCode: str = "all",
         page_size: int = 15,
-        page_index: int = 1,
+        page_index: int = 1,       
     ) -> PageExam:
         """
-        获取考试
+        获取考试\n
+        `year`和`academicInfo`只需要传一个即可，均传默认使用`year`\n
         Args:
-            class_id (str): 指定查看考试的班级, 默认为全部班级
-            start_time (datetime): 指定查看考试的开始时间, 默认为2020年1月1日
-            end_time (datetime): 指定查看考试的结束时间, 默认为现在
-            page_size (int): 指定一页考试数
-            page_index (int): 指定页数
+            year (int): 需要查询的年级，如2022级则传入2022\n
+            academicInfo (AcademicInfo): 搜索所用的学术信息\n
+            academicInfoUseIndex (str): 学术信息检索所用，默认为最后一个（全部）\n
+            class_id (str): 指定查看考试的班级, 默认为全部班级\n
+            start_time (datetime): 指定查看考试的开始时间, 默认为2020年1月1日\n
+            end_time (datetime): 指定查看考试的结束时间, 默认为现在\n
+            page_size (int): 指定一页考试数\n
+            page_index (int): 指定页数\n
+            examTypeCode (str): 指定查看考试的类型，默认为全部\n
+            subjectCode (str): 指定查看考试的学科类型\n
+            gradeCode (str): 指定查看考试的年级\n
+            examName (str): 指定需要查看的考试名称\n
         Return:
             PageExam: 考试信息和页数信息
         """
-        r = self._session.get(
-            Url.GET_EXAMS_URL,
-            params={
-                "examName": "",
-                "gradeCode": "all",
-                "classId": class_id,
-                "subjectCode": "all",
-                "searchType": "schoolYearType",
-                "circlesYear": "",
-                "examTypeCode": "all",
-                "termId": "3feef3b1-a921-450e-a007-2e1d0bef7ba1",
-                "teachingCycleId": "150ae8ea-a5ec-439b-957b-f27205f672b4",
-                "startTime": int(start_time.timestamp() * 1000),
-                "endTime": int(end_time.timestamp() * 1000),
-                "pageSize": page_size,
-                "pageIndex": page_index,
-            },
-        )
-        exams = []
+        termId = ""
+        beginTime = ""
+        endTime = ""
+        circlesYear = ""
+        teachingCycleId = ""
+        r: Response = None
+        if year == None:
+            #! 处理AcademicInfo
+            if academicInfoUseIndex != "latest":
+                ind = int(academicInfoUseIndex)
+                termId = academicInfo.termId[ind]
+                teachingCycleId = academicInfo.circlesYear[ind]
+                beginTime = academicInfo.beginTime[ind]
+                endTime = academicInfo.endTime[ind]
+                circlesYear = academicInfo.teachingCycleId[ind]
+            else:
+                termId = academicInfo.termId[len(academicInfo.termId) - 1]
+                teachingCycleId = academicInfo.circlesYear[len(academicInfo.circlesYear) - 1]
+                beginTime = academicInfo.beginTime[len(academicInfo.beginTime) - 1]
+                endTime = academicInfo.endTime[len(academicInfo.endTime) - 1]
+                circlesYear = academicInfo.teachingCycleId[len(academicInfo.teachingCycleId) - 1]
+            r = self._session.get(
+                Url.GET_EXAMS_URL,
+                params={
+                    "examName": examName,
+                    "gradeCode": gradeCode,
+                    "classId": class_id,
+                    "subjectCode": subjectCode,
+                    "searchType": "schoolYearType",
+                    "circlesYear": teachingCycleId,
+                    "examTypeCode": examTypeCode,
+                    "termId": termId,
+                    "teachingCycleId": circlesYear,
+                    "startTime": beginTime,
+                    "endTime": endTime,
+                    "pageSize": page_size,
+                    "pageIndex": page_index,
+                },
+            )
+        elif year != None:
+            r = self._session.get(
+                Url.GET_EXAMS_URL,
+                params={
+                    "examName": examName,
+                    "gradeCode": gradeCode,
+                    "classId": class_id,
+                    "subjectCode": subjectCode,
+                    "searchType": "schoolYearType",
+                    "circlesYear": year,
+                    "examTypeCode": examTypeCode,
+                    "termId": "",
+                    "teachingCycleId": "",
+                    "startTime": beginTime,
+                    "endTime": endTime,
+                    "pageSize": page_size,
+                    "pageIndex": page_index,
+                },
+            )
+        elif year == None and academicInfo == None:
+            raise ValueError("必传参数缺失！")
+        exams = []       
         data = r.json()["result"]
         if "classPaperSummaryList" not in data:
             return PageExam([], page_index, page_size, 0, False)
