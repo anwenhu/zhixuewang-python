@@ -55,9 +55,9 @@ class PageExam:
 
 @dataclass
 class AcademicInfo:
-    termId: list
-    circlesYear: list
-    teachingCycleId: list
-    beginTime: list
-    endTime: list
-    schoolId: str
+    term_id: str
+    circles_year: str
+    teaching_cycle_id: str
+    begin_time: int
+    end_time: int
+    school_id: str
