@@ -67,47 +67,51 @@ class TeacherAccount(Account, TeaPerson):
         self.inCity = adv_result["city"]["name"]
 
         if (
-            type(adv_result["school"]) == None
-            or type(adv_result["curSubject"]) == None
-            or type(adv_result["grade"]) == None
-            or type(adv_result["textBookVersion"]) == None
+            adv_result["school"] == None
+            or adv_result["curSubject"] == None
+            or adv_result["grade"] == None
+            or adv_result["textBookVersion"] == None
+            or adv_result == None
+            or adv_result["grade"] == None
         ):
-            raise TypeError(
+            print(
                 f"教师高级信息传回空值，原始JSON数据为 School: {adv_result['school']} curSubject: {adv_result['curSubject']} grade: {adv_result['grade']}  textBook: {adv_result['textBookVersion']}"
             )
-
-        self.currentSchool = School(
-            name=adv_result["school"]["name"], id=adv_result["school"]["id"]
-        )
-        self.currentSubject = Subject(
-            adv_result["curSubject"]["name"], code=adv_result["curSubject"]["code"]
-        )
-        self.currentTeachingGrade = Grade(
-            adv_result["grade"]["name"], code=adv_result["grade"]["code"]
-        )
-        self.currentTeachingTextbook = TextBook(
-            code=adv_result["textBookVersion"]["code"],
-            name=adv_result["textBookVersion"]["name"],
-            version=adv_result["bookVersion"]["name"],
-            versionCode=adv_result["bookVersion"]["code"],
-            #!TODO 暂无法通过对应的Code获取学科，暂时使用教师绑定的学科
-            bindSubject=self.currentSubject,
-        )
-        teacGrade: Grade = None
-        for i in adv_result["curTeachingGrades"]:
-            teacGrade = Grade(name=i["name"], code=i["code"])
-            for j in i["clazzs"]:
-                #!TODO 暂无法获取班级所在学校，暂时使用教师绑定的学校
-                self.currentTeachClasses.append(
-                    StuClass(
-                        id=j["code"],
-                        name=j["name"],
-                        grade=teacGrade,
-                        school=self.currentSchool,
+        try:
+            self.currentSchool = School(
+                name=adv_result["school"]["name"], id=adv_result["school"]["id"]
+            )
+            self.currentSubject = Subject(
+                adv_result["curSubject"]["name"], code=adv_result["curSubject"]["code"]
+            )
+            self.currentTeachingGrade = Grade(
+                adv_result["grade"]["name"], code=adv_result["grade"]["code"]
+            )
+            self.currentTeachingTextbook = TextBook(
+                code=adv_result["textBookVersion"]["code"],
+                name=adv_result["textBookVersion"]["name"],
+                version=adv_result["bookVersion"]["name"],
+                versionCode=adv_result["bookVersion"]["code"],
+                #!TODO 暂无法通过对应的Code获取学科，暂时使用教师绑定的学科
+                bindSubject=self.currentSubject,
+            )
+            teacGrade: Grade = None
+            for i in adv_result["curTeachingGrades"]:
+                teacGrade = Grade(name=i["name"], code=i["code"])
+                for j in i["clazzs"]:
+                    #!TODO 暂无法获取班级所在学校，暂时使用教师绑定的学校
+                    self.currentTeachClasses.append(
+                        StuClass(
+                            id=j["code"],
+                            name=j["name"],
+                            grade=teacGrade,
+                            school=self.currentSchool,
+                        )
                     )
-                )
-            # 清空grade缓存
-            teacGrade = None
+                # 清空grade缓存
+                teacGrade = None
+        except BaseException as e:
+            print(str(e))
         return self
 
     async def __get_school_exam_classes(
