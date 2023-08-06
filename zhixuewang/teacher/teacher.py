@@ -439,7 +439,9 @@ class TeacherAccount(Account, TeaPerson):
             difficultyCode: str = "",
             pageSize: str = "10",
             pageIndex: str = "1",
-            questionMode: str = "") -> List[Question]:
+            questionMode: str = "",
+            useKnowledgeToSearch: bool = False,
+            knowledges: list = []) -> List[Question]:
         """
             subjectCode: 学科ID，例如高中地理为14\n
             phaseCode: 不清楚，反正高中是05\n
@@ -449,7 +451,9 @@ class TeacherAccount(Account, TeaPerson):
             difficultyCode: 难度代码（hard, easy, normal）\n
             questionMode: 题目类型（单选`singleChoice`，多选`multiChoice`，综合`complex`，全部`all`）\n
             pageSize: 每页展示多少题\n
-            pageIndex: 控制这是第几页
+            pageIndex: 控制这是第几页\n
+            useKnowledgeToSearch: 控制是否使用知识点出题功能\n
+            knowledges: 需要出题的知识点ID
 
             Return:
                 `Question`和题目总数(int)
@@ -500,6 +504,20 @@ class TeacherAccount(Account, TeaPerson):
             "tfSolveMethods": "",
             "sceneTypes": ""
         }
+        if useKnowledgeToSearch:
+            params_data["knowledgeType"] = 0
+            request_knowledgestr = "["
+            for reqKnow in knowledges:
+                request_knowledgestr += "\"" + reqKnow + "\","
+            request_knowledgestr += "]"
+            request_knowledgestr = request_knowledgestr.replace(",]", "]") # 去除最后一个
+            if len(knowledges) == 1: # 单选知识点
+                params_data["knowledgeSelectType"] = "0"
+            else:
+                params_data["knowledgeSelectType"] = "1"
+            params_data["knowledgeCode"] = request_knowledgestr
+            del params_data["chapterCode"]
+            print(request_knowledgestr)
         response = self._session.post(Url.GET_TOPICS_URL, data=params_data, headers={ # 此处智学网会判定Content-Type和Referer，故手动添加
             "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
             "Referer": "https://www.zhixue.com/paperfresh/dist/",
@@ -508,6 +526,7 @@ class TeacherAccount(Account, TeaPerson):
         }).json()
         if response['errorCode'] != 0:
             raise ValueError(f"获取题目时发生错误：{response['errorInfo']}(错误代码{response['errorCode']})")
+        #print(response['result'])
         total = int(response['result']['pager']['totalCount'])
         questions = response['result']['pager']['list']
         ret: list = [] # type: Question
@@ -566,7 +585,6 @@ class TeacherAccount(Account, TeaPerson):
             #endregion
             ret.append(retsult)
         return ret, total
-
     #region 搜索部分
     def search_press(self, pressString: str) -> str:
         '''通过出版社名称搜索对应的出版社代码\n
