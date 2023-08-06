@@ -107,3 +107,12 @@ class Question:
     '''题目创建时间'''
     isXGKQuestion: bool
     '''是否为新高考'''
+
+@dataclass
+class Knowledge:
+    id: str
+    name: str
+    isChild: bool
+    '''是否为子知识'''
+    parentKnowledgeId: str
+    '''如果是，上一级的知识ID'''

@@ -24,6 +24,7 @@ from zhixuewang.teacher.models import (
     QuestionDifficulty, 
     QuestionKnowledges, 
     QuestionSection,
+    Knowledge
 )
 from zhixuewang.teacher.urls import Url
 
@@ -643,6 +644,30 @@ class TeacherAccount(Account, TeaPerson):
             ret.append(TextBook(node['id'], node['name'], version = None, versionCode= None, pressCode= pressCode, availableChapters = childs))
         return ret
 
+    def get_knowledges(self) -> List[Knowledge]:
+        '''
+        获取知识点
+        '''
+        response = self._session.post(Url.GET_KNOWLEDGES_URL, 
+            headers= { 
+                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                "Referer": "https://www.zhixue.com/paperfresh/dist/",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0",
+                "Origin": "https://www.zhixue.com"}).json()
+        if response['errorCode'] != 0:
+            raise ValueError(f"获取知识点时发生错误：{response['errorInfo']}(错误代码{response['errorCode']})")
+        result = response['result']
+        childs: list = []
+        for node in result:
+            childs.append(Knowledge(node["id"], node["name"], False, ""))
+            for child in node['children']:
+                # 遍历大知识点
+                if child["children"] != None: # 下面还有知识点
+                    for corChild in child['children']:
+                        childs.append(Knowledge(corChild["id"], corChild["name"], True, node["id"]))
+            #!TODO 暂时不支持获取学科，使用教师的currentSubject替代
+        return childs
+    
     def get_token(self) -> str:
         if self._token is not None:
             return self._token
