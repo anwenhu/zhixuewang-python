@@ -25,3 +25,8 @@ class Url:
 
     GET_ADVANCED_INFORMATION_URL = f"{BASE_URL}/paperfresh/api/common/getCurrentUser"
     GET_STUDENT_STATUS_URL = f"{BASE_URL}/api-teacher/home/getStudentStatus"
+
+    GET_TOPICS_URL = f"{BASE_URL}/paperfresh/api/xgk/getTopics"
+    GET_TEXTBOOK_URL = f"{BASE_URL}/paperfresh/api/common/getBookTree"
+
+    SWITCH_SUBJECT_URL = "f{BASE_URL}/paperfresh/api/common/switchSubject"
