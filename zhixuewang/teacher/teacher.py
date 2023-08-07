@@ -67,15 +67,16 @@ class TeacherAccount(Account, TeaPerson):
         self.inCity = adv_result["city"]["name"]
 
         if (
-            type(adv_result["school"]) == None
-            or type(adv_result["curSubject"]) == None
-            or type(adv_result["grade"]) == None
-            or type(adv_result["textBookVersion"]) == None
+            adv_result["school"] == None
+            or adv_result["curSubject"] == None
+            or adv_result["grade"] == None
+            or adv_result["textBookVersion"] == None
+            or adv_result == None
+            or adv_result["grade"] == None
         ):
-            raise TypeError(
+            print(
                 f"教师高级信息传回空值，原始JSON数据为 School: {adv_result['school']} curSubject: {adv_result['curSubject']} grade: {adv_result['grade']}  textBook: {adv_result['textBookVersion']}"
             )
-
         self.currentSchool = School(
             name=adv_result["school"]["name"], id=adv_result["school"]["id"]
         )
