@@ -420,3 +420,5 @@ class TeacherAccount(Account, TeaPerson):
         r = self._session.get("https://www.zhixue.com/container/app/token/getToken")
         self._token = r.json()["result"]
         return self._token
+    def get_session(self):
+        return self._session
