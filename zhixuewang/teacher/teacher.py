@@ -37,6 +37,8 @@ class TeacherAccount(Account, TeaPerson):
     """当前使用的教科书"""
     currentSchool: School = None
     """当前的学校"""
+    advancedInformationStatus: bool = False
+    '''教师是否支持高级信息'''
 
     def __init__(self, session):
         super().__init__(session, Role.teacher)
@@ -62,22 +64,25 @@ class TeacherAccount(Account, TeaPerson):
                 "referer": "https://www.zhixue.com/paperfresh/dist/assets/expertPaper.html"
             },
         )
+        if advanced_info.status_code != 200:
+            self.advancedInformationStatus = False
+            return self
         adv_result = advanced_info.json()["result"]
         self.inProvince = adv_result["province"]["name"]
         self.inCity = adv_result["city"]["name"]
 
         if (
-            adv_result["school"] is None
-            or adv_result["curSubject"] is None
-            or adv_result["grade"] is None
-            or adv_result["textBookVersion"] is None
-            or adv_result is None
-            or adv_result["grade"] is None
+            adv_result["school"] == None
+            or adv_result["curSubject"] == None
+            or adv_result["grade"] == None
+            or adv_result["textBookVersion"] == None
+            or adv_result == None
+            or adv_result["grade"] == None
         ):
             print(
                 f"教师高级信息传回空值，原始JSON数据为 School: {adv_result['school']} curSubject: {adv_result['curSubject']} grade: {adv_result['grade']}  textBook: {adv_result['textBookVersion']}"
             )
-            return self
+            self.advancedInformationStatus = False
         self.currentSchool = School(
             name=adv_result["school"]["name"], id=adv_result["school"]["id"]
         )
@@ -110,6 +115,7 @@ class TeacherAccount(Account, TeaPerson):
                 )
             # 清空grade缓存
             teacGrade = None
+        self.advancedInformationStatus = True
         return self
 
     async def __get_school_exam_classes(
