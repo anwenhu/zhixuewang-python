@@ -77,7 +77,7 @@ def login_teacher_id(user_id: str, password: str) -> TeacherAccount:
     """
     session = get_session_id(user_id, password)
     teacher = TeacherAccount(session)
-    return teacher.set_base_info()
+    return teacher.set_base_info().set_advanced_info()
 
 
 def login_teacher(username: str, password: str) -> TeacherAccount:
@@ -97,7 +97,7 @@ def login_teacher(username: str, password: str) -> TeacherAccount:
     """
     session = get_session(username, password)
     teacher = TeacherAccount(session)
-    return teacher.set_base_info()
+    return teacher.set_base_info().set_advanced_info()
 
 
 def login_id(user_id: str, password: str) -> Account:
@@ -142,7 +142,7 @@ def login(username: str, password: str) -> Account:
     session = get_session(username, password)
     if check_is_student(session):
         return StudentAccount(session).set_base_info()
-    return TeacherAccount(session).set_base_info()
+    return TeacherAccount(session).set_base_info().set_advanced_info()
 
 
 def rewrite_str(model):
