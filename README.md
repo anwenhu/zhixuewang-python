@@ -39,7 +39,10 @@ print(zxw.get_self_mark())
 更多高级功能请[查看文档](https://zxdoc.risconn.com)。
 
 
+
 ## 问题和建议
 如果您在使用的过程中遇到任何问题，欢迎前往加入这个QQ群讨论：862767072（备注：github智学网库）
+
 当然也可以直接前往 [Issues](https://github.com/anwenhu/zhixuewang/issues) 进行提问
+
 如果有其它不常见的功能需求, 可以前往 [MasterYuan418/zxext](https://github.com/MasterYuan418/zxext) 查找或提出
