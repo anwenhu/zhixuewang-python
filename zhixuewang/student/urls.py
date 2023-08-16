@@ -6,7 +6,9 @@ class Url:
 
     # Login
     SERVICE_URL = f"{BASE_URL}:443/ssoservice.jsp"
-    SSO_URL = f"https://open.changyan.com/sso/login?sso_from=zhixuesso&service={SERVICE_URL}"
+    SSO_URL = (
+        f"https://open.changyan.com/sso/login?sso_from=zhixuesso&service={SERVICE_URL}"
+    )
 
     CHANGE_PASSWORD_URL = f"{BASE_URL}/portalcenter/home/updatePassword/"
     TEST_PASSWORD_URL = f"{BASE_URL}/weakPwdLogin/?from=web_login"
@@ -30,12 +32,16 @@ class Url:
 
     APP_BASE_URL = "https://mhw.zhixue.com"
     # Homework
-    GET_HOMEWORK_URL = f"{APP_BASE_URL}/homework_middle_service/stuapp/getStudentHomeWorkList"
+    GET_HOMEWORK_URL = (
+        f"{APP_BASE_URL}/homework_middle_service/stuapp/getStudentHomeWorkList"
+    )
     GET_HOMEWORK_RESOURCE_URL = f"{APP_BASE_URL}/hw/manage/homework/redeploy"
 
     GET_EXAM_LEVEL_TREND_URL = f"{BASE_URL}/zhixuebao/report/exam/getLevelTrend"
 
     GET_PAPER_LEVEL_TREND_URL = f"{BASE_URL}/zhixuebao/report/paper/getLevelTrend"
-    GET_LOST_TOPIC_URL = f"{BASE_URL}/zhixuebao/report/paper/getExamPointsAndScoringAbility"
+    GET_LOST_TOPIC_URL = (
+        f"{BASE_URL}/zhixuebao/report/paper/getExamPointsAndScoringAbility"
+    )
     GET_ERRORBOOK_URL = f"{BASE_URL}/zhixuebao/report/paper/getLostTopicAndAnalysis"
     GET_SUBJECT_DIAGNOSIS = f"{BASE_URL}/zhixuebao/report/exam/getSubjectDiagnosis"

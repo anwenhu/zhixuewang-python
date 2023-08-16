@@ -9,5 +9,4 @@ def get_property(arg_name: str) -> property:
     def setter(self, mill_timestamp):
         self.__dict__[arg_name] = timestamp2datetime(mill_timestamp / 1000)
 
-    return property(fget=lambda self: self.__dict__[arg_name],
-                    fset=setter)
+    return property(fget=lambda self: self.__dict__[arg_name], fset=setter)

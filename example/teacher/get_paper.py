@@ -24,7 +24,9 @@ if __name__ == "__main__":
 
         print("请输入想查看的学科顺序id")
         subj_id = input()
-        result = teacher.get_original_paper(student.id, subjects[int(subj_id)].id, save)  # 获得返回值
+        result = teacher.get_original_paper(
+            student.id, subjects[int(subj_id)].id, save
+        )  # 获得返回值
         if result != "OK":
             print("发生了错误，无法获得原卷。（可能是尚未生成或没有权限。）")
         else:

@@ -24,14 +24,14 @@ class TeacherRole(Enum):
 
 class TeaPerson(Person):
     def __init__(
-            self,
-            name: str = "",
-            id: str = "",
-            gender: Sex = Sex.GIRL,
-            mobile: str = "",
-            avatar: str = "",
-            code: str = "",
-            clazz: StuClass = None,
+        self,
+        name: str = "",
+        id: str = "",
+        gender: Sex = Sex.GIRL,
+        mobile: str = "",
+        avatar: str = "",
+        code: str = "",
+        clazz: StuClass = None,
     ):
         super().__init__(name, id, gender, mobile, avatar)
         self.code = code
@@ -45,6 +45,7 @@ class MarkingProgress:
     complete_count: int
     all_count: int
 
+
 @dataclass
 class PageExam:
     exams: List[Exam]
@@ -52,6 +53,7 @@ class PageExam:
     page_size: int
     all_pages: int
     has_next_page: bool
+
 
 @dataclass
 class AcademicInfo:

@@ -1,5 +1,6 @@
 import hashlib
 import json
+
 # import math
 import time
 import uuid
@@ -33,9 +34,9 @@ from zhixuewang.student.urls import Url
 def _check_is_uuid(msg: str):
     """判断msg是否为uuid"""
     return (
-            len(msg) == 36
-            and msg[14] == "4"
-            and msg[8] == msg[13] == msg[18] == msg[23] == "-"
+        len(msg) == 36
+        and msg[14] == "4"
+        and msg[8] == msg[13] == msg[18] == msg[23] == "-"
     )
 
 
@@ -51,10 +52,7 @@ class StudentAccount(Account, StuPerson):
     def __init__(self, session):
         super().__init__(session, Role.student)
         # self._token_timestamp = ["", 0]
-        self._auth = {
-            "token": "",
-            "timestamp": 0.0
-        }
+        self._auth = {"token": "", "timestamp": 0.0}
         self.exams: ExtendedList[Exam] = ExtendedList()
 
     def _get_auth_header(self) -> dict:
@@ -262,7 +260,7 @@ class StudentAccount(Account, StuPerson):
         return mark
 
     def get_self_mark(
-            self, exam_data: Union[Exam, str] = "", has_total_score: bool = True
+        self, exam_data: Union[Exam, str] = "", has_total_score: bool = True
     ) -> Mark:
         """获取指定考试的成绩
 
@@ -325,7 +323,7 @@ class StudentAccount(Account, StuPerson):
         return subject
 
     def get_subject(
-            self, subject_data: Union[Subject, str], exam_data: Union[Exam, str] = ""
+        self, subject_data: Union[Subject, str], exam_data: Union[Exam, str] = ""
     ) -> Subject:
         """获取指定考试的学科
 
@@ -365,7 +363,7 @@ class StudentAccount(Account, StuPerson):
         return image_urls
 
     def get_original(
-            self, subject_data: Union[Subject, str], exam_data: Union[Exam, str] = ""
+        self, subject_data: Union[Subject, str], exam_data: Union[Exam, str] = ""
     ) -> List[str]:
         """获得指定考试学科的原卷地址
 
@@ -454,7 +452,7 @@ class StudentAccount(Account, StuPerson):
         return classmates
 
     def get_classmates(
-            self, clazz_data: Union[StuClass, str] = ""
+        self, clazz_data: Union[StuClass, str] = ""
     ) -> ExtendedList[StuPerson]:
         """获取指定班级里学生列表
 
@@ -470,11 +468,11 @@ class StudentAccount(Account, StuPerson):
         return self.__get_classmates(clazz.id)
 
     def get_homeworks(
-            self,
-            size: int = 20,
-            is_complete: bool = False,
-            subject_code: str = "-1",
-            create_time: int = 0,
+        self,
+        size: int = 20,
+        is_complete: bool = False,
+        subject_code: str = "-1",
+        create_time: int = 0,
     ) -> ExtendedList[StuHomework]:
         """获取指定数量的作业(暂时不支持获取所有作业)
 
@@ -582,7 +580,9 @@ class StudentAccount(Account, StuPerson):
                 #     each_mark.class_rank = 1
                 # else:
                 #     each_mark.class_rank = math.ceil(each["myRank"] / 100 * num)
-                each_mark.class_rank = round(num - (100 - each["myRank"]) / 100 * (num - 1))
+                each_mark.class_rank = round(
+                    num - (100 - each["myRank"]) / 100 * (num - 1)
+                )
 
     def get_errorbook(self, exam_id, subject_id: str) -> List[ErrorBookTopic]:
         r = self._session.get(
@@ -592,7 +592,7 @@ class StudentAccount(Account, StuPerson):
         )
         data = r.json()
         if (
-                data["errorCode"] != 0
+            data["errorCode"] != 0
         ):  # {'errorCode': 40217, 'errorInfo': '暂时未收集到试题信息,无法查看', 'result': ''}
             raise Exception(data)
         result = []

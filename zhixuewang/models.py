@@ -30,11 +30,7 @@ class Account:
     def save_account(self, path: str = "user.data"):
         with open(path, "wb") as f:
             password = base64.b64decode(self._session.cookies["pwd"].encode()).decode()
-            data = pickle.dumps(
-                AccountData(
-                    self.username, password, self.role
-                )
-            )
+            data = pickle.dumps(AccountData(self.username, password, self.role))
             f.write(base64.b64encode(data))
 
     def update_login_status(self):
@@ -189,6 +185,7 @@ class Subject(BasicSubject):
 @dataclass
 class TextBook:
     """教科书属性"""
+
     code: str = None
     """教科书编号"""
     name: int = None
@@ -198,10 +195,10 @@ class TextBook:
     versionCode: int = None
     """教科书版本编号"""
     bindSubject: Subject = None
+
     def __str__(self) -> str:
-        return (
-            f"{self.bindSubject.name} {self.name}（{self.version}）"
-        )
+        return f"{self.bindSubject.name} {self.name}（{self.version}）"
+
 
 @dataclass(eq=False)
 class Exam:
@@ -250,9 +247,8 @@ class Mark(ExtendedList[SubjectScore]):
     """一场考试的成绩"""
 
     def __init__(
-            self, ls: list = None, exam: Exam = Exam(), person: StuPerson = StuPerson()
+        self, ls: list = None, exam: Exam = Exam(), person: StuPerson = StuPerson()
     ):
-
         super().__init__([] if ls is None else ls)
         self.exam = exam
         self.person = person

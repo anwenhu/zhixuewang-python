@@ -9,7 +9,9 @@ class Url:
     TEST_URL = f"{BASE_URL}/container/container/teacher/teacherAccountNew"
 
     GET_EXAM_URL = f"{BASE_URL}/classreport/class/classReportList/"
-    GET_AcademicTermTeachingCycle_URL = f"{BASE_URL}/api-classreport/class/getAcademicTermTeachingCycle/"
+    GET_AcademicTermTeachingCycle_URL = (
+        f"{BASE_URL}/api-classreport/class/getAcademicTermTeachingCycle/"
+    )
 
     GET_REPORT_URL = f"{BASE_URL}/exportpaper/class/getExportStudentInfo"
     GET_MARKING_PROGRESS_URL = f"{BASE_URL}/marking/marking/markingProgressDetail"

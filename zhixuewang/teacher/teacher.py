@@ -46,9 +46,7 @@ class TeacherAccount(Account, TeaPerson):
         self.province = data["province"]["name"]
         self.city = data["city"]["name"]
         if data["school"]:
-            self.school = School(
-                name=data["school"]["name"], id=data["school"]["id"]
-            )
+            self.school = School(name=data["school"]["name"], id=data["school"]["id"])
         if data["curSubject"]:
             self.subject = Subject(
                 data["curSubject"]["name"], code=data["curSubject"]["code"]
