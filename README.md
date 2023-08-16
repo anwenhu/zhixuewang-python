@@ -36,10 +36,10 @@ print(zxw.get_self_mark())
 ```
 **注: 获取班级名次仅获取最新一次考试成绩有效, 且此库无法获取您的校级名次**
 
-我们的文档在：[文档](https://zxdoc.risconn.com)，更多高级功能均将在那里介绍。
+更多高级功能请[查看文档](https://zxdoc.risconn.com)。
 
 
 ## 问题和建议
-如果您在使用的过程中遇到任何问题，欢迎前往 [Issue](https://github.com/anwenhu/zhixuewang/issues)提问
-当然也可以加入这个QQ群讨论：862767072（备注：智学网）
-如果有其它不常见的功能需求, 可以前往[zxext](https://github.com/MasterYuan418/zxext)查找或提出
+如果您在使用的过程中遇到任何问题，欢迎前往加入这个QQ群讨论：862767072（备注：github智学网库）
+当然也可以直接前往 [Issues](https://github.com/anwenhu/zhixuewang/issues) 进行提问
+如果有其它不常见的功能需求, 可以前往 [MasterYuan418/zxext](https://github.com/MasterYuan418/zxext) 查找或提出
