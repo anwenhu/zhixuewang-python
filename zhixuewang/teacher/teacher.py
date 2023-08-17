@@ -1,6 +1,7 @@
+import httpx
 import asyncio
 from typing import List, Tuple
-import httpx
+
 from zhixuewang.models import (
     Account,
     Exam,
@@ -61,12 +62,12 @@ class TeacherAccount(Account, TeaPerson):
                 name=data["textBookVersion"]["name"],
                 version=data["bookVersion"]["name"],
                 versionCode=data["bookVersion"]["code"],
-                #!TODO 暂无法通过对应的Code获取学科，暂时使用教师绑定的学科
+                # !TODO 暂无法通过对应的Code获取学科，暂时使用教师绑定的学科
                 bindSubject=self.subject,
             )
         for teaching_grade in data["curTeachingGrades"]:
             for clazz in teaching_grade["clazzs"]:
-                #!TODO 暂无法获取班级所在学校，暂时使用教师绑定的学校
+                # !TODO 暂无法获取班级所在学校，暂时使用教师绑定的学校
                 self.teaching_classes.append(
                     StuClass(
                         id=clazz["code"],
@@ -105,7 +106,6 @@ class TeacherAccount(Account, TeaPerson):
             if data is None:
                 return []
             classes = []
-
             for each in data:
                 classes.append(
                     StuClass(
@@ -133,7 +133,7 @@ class TeacherAccount(Account, TeaPerson):
             Tuple[List[StuPerson], List[StuPerson], List[StuPerson]]: 由 临近生,下滑生,波动生 组成的元组
         """
         self.update_login_status()
-        r = self._session.get(
+        data = self._session.get(
             Url.GET_STUDENT_STATUS_URL,
             headers={"referers": "https://www.zhixue.com/api-teacher/home/index"},
             params={
@@ -142,27 +142,24 @@ class TeacherAccount(Account, TeaPerson):
                 "classId": clazz_id,
                 "subjectCode": subject_code,
             },
+        ).json()["result"]
+        student_types = ["criticalStudents", "backwordStudents", "unstableStudents"]
+        students = {
+            student_type: (
+                [
+                    StuPerson(id=i["userId"], name=i["userName"])
+                    for i in data[student_type]
+                ]
+                if data[student_type] is not None
+                else []
+            )
+            for student_type in student_types
+        }
+        return (
+            students["criticalStudents"],
+            students["backwordStudents"],
+            students["unstableStudents"],
         )
-        data = r.json()["result"]
-        critical_student: list = []  # 临近生
-        backword_student: list = []  # 下滑生
-        unstable_student: list = []  # 波动生
-        if data["criticalStudents"] != None:
-            critical_student = [
-                StuPerson(id=i["userId"], name=i["userName"])
-                for i in data["criticalStudents"]
-            ]
-        if data["backwordStudents"] != None:
-            backword_student = [
-                StuPerson(id=i["userId"], name=i["userName"])
-                for i in data["backwordStudents"]
-            ]
-        if data["unstableStudents"] != None:
-            unstable_student = [
-                StuPerson(id=i["userId"], name=i["userName"])
-                for i in data["unstableStudents"]
-            ]
-        return (critical_student, backword_student, unstable_student)
 
     def get_school_exam_classes(
         self, school_id: str, subject_id: str
@@ -191,7 +188,7 @@ class TeacherAccount(Account, TeaPerson):
             )
         return True
 
-    def get_teacher_roleText(self) -> List[str]:
+    def get_teacher_role_text(self) -> List[str]:
         """
         获得教师的角色文本
         Return:
@@ -220,24 +217,27 @@ class TeacherAccount(Account, TeaPerson):
         Args:
             exam_id (str): 为需要查询考试的id
         Return:
-            bool: 正常会返回True
+            ExtendedList[Subject]: 考试科目列表
         """
         self.update_login_status()
-        r = self._session.get(Url.GET_EXAM_SUBJECTS_URL, params={"examId": exam_id})
-        data = r.json()["result"]
-        subjects = []
-        for each in data:
-            name = each["subjectName"]
-            if name != "总分" and (not each.get("isSubjectGroup")):  # 排除学科组()
-                subjects.append(
+        return ExtendedList(
+            sorted(
+                [
                     Subject(
                         id=each["topicSetId"],
                         name=each["subjectName"],
                         code=each["subjectCode"],
                         standard_score=each["standScore"],
                     )
-                )
-        return ExtendedList(sorted(subjects, key=lambda x: x.code, reverse=False))
+                    for each in self._session.get(
+                        Url.GET_EXAM_SUBJECTS_URL, params={"examId": exam_id}
+                    ).json()["result"]
+                    if each["subjectName"] != "总分" and (not each.get("isSubjectGroup"))
+                ],
+                key=lambda x: x.code,
+                reverse=False,
+            )
+        )
 
     def get_exam_detail(self, exam_id: str) -> Exam:
         """
@@ -249,20 +249,22 @@ class TeacherAccount(Account, TeaPerson):
             Exam
         """
         self.update_login_status()
-        r = self._session.post(Url.GET_EXAM_DETAIL_URL, data={"examId": exam_id})
-        data = r.json()["result"]
-        exam = Exam()
-        schools: ExtendedList[School] = ExtendedList()
-        for each in data["schoolList"]:
-            schools.append(School(id=each["schoolId"], name=each["schoolName"]))
-        exam.id = exam_id
-        exam.name = data["exam"]["examName"]
-        exam.grade_code = data["exam"]["gradeCode"]
-
-        exam.schools = schools
-        exam.status = str(data["exam"]["isCrossExam"])
-        exam.subjects = self.get_exam_subjects(exam_id)
-        return exam
+        data = self._session.post(
+            Url.GET_EXAM_DETAIL_URL, data={"examId": exam_id}
+        ).json()["result"]
+        return Exam(
+            id=exam_id,
+            name=data["exam"]["examName"],
+            grade_code=data["exam"]["gradeCode"],
+            schools=ExtendedList(
+                [
+                    School(id=each["schoolId"], name=each["schoolName"])
+                    for each in data["schoolList"]
+                ]
+            ),
+            status=str(data["exam"]["isCrossExam"]),
+            subjects=self.get_exam_subjects(exam_id),
+        )
 
     def get_marking_progress(
         self,
@@ -276,7 +278,7 @@ class TeacherAccount(Account, TeaPerson):
             List[MarkingProgress]
         """
         r = self._session.post(
-            "https://pt-ali-bj-re.zhixue.com/marking/marking/markingTopicProgress/",
+            "https://pt-ali-bj-re.zhixue.com/marking/marking/markingTopicProgress/",  # TODO: 须先判断考试所在的环境
             data={"markingPaperId": subject_id},
             headers={"token": self.get_token()},
         )
@@ -308,14 +310,14 @@ class TeacherAccount(Account, TeaPerson):
                     circles_year=str(did),
                     term_id=d["termId"],
                     begin_time=d["beginTime"],
-                    end_time=d["endTime"],  #! 这两个都使用Unix时间戳，单位ms
+                    end_time=d["endTime"],  # ! 这两个都使用Unix时间戳，单位ms
                     school_id=data["schoolId"],
                 )
             )
         result = sorted(result, key=lambda _: _.begin_time, reverse=True)
         return result
 
-    def get_exams(
+    def get_page_exams(
         self,
         year: int = 0,
         index: int = 1,
@@ -354,10 +356,10 @@ class TeacherAccount(Account, TeaPerson):
             "pageIndex": page_index,
         }
         if year == 0:
-            #! 按 学期 查询
+            # ! 按 学期 查询
             academic_infos = self._get_academic_info()
             academic_info = academic_infos[index - 1]
-            print(academic_info)
+            # print(academic_info)
             params_data.update(
                 {
                     "searchType": "schoolYearType",
@@ -383,13 +385,12 @@ class TeacherAccount(Account, TeaPerson):
                 }
             )
             r = self._session.get(Url.GET_EXAMS_URL, params=params_data)
-        print(r.url)
-        exams = []
+        # print(r.url)
         data = r.json()["result"]
         if "classPaperSummaryList" not in data:
             return PageExam([], page_index, page_size, 0, False)
-        for each in data["classPaperSummaryList"]:
-            exams.append(
+        return PageExam(
+            exams=[
                 Exam(
                     id=each["data"]["examId"],
                     name=each["data"]["examName"],
@@ -398,15 +399,14 @@ class TeacherAccount(Account, TeaPerson):
                         [
                             Subject(name=one["name"])
                             for one in each["zxSubjects"]
-                            if not one["isMultiSubject"]  # 排除复合学科如理综
+                            if not one["isMultiSubject"]  # 排除综合学科如理综
                         ]
                     ),
                     create_time=each["data"]["createDateTime"] / 1000,
                     is_final=each["data"]["isFinal"],
                 )
-            )
-        return PageExam(
-            exams=exams,
+                for each in data["classPaperSummaryList"]
+            ],
             page_index=page_index,
             page_size=page_size,
             all_pages=data["pageInfo"]["allPages"][-1],

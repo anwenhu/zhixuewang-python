@@ -5,7 +5,6 @@ import pickle
 from typing import List, Callable, Union, TypeVar
 from dataclasses import dataclass, field
 from zhixuewang.session import get_basic_session, get_session
-from zhixuewang.tools.datetime_tool import get_property
 from zhixuewang.urls import Url
 
 
@@ -35,8 +34,7 @@ class Account:
 
     def update_login_status(self):
         """更新登录状态. 如果session过期自动重新获取"""
-        r = self._session.get(Url.GET_LOGIN_STATE)
-        data = r.json()
+        data = self._session.get(Url.GET_LOGIN_STATE).json()
         if data["result"] == "success":
             return
         # session过期
@@ -221,6 +219,9 @@ class Exam:
 
     def __eq__(self, other):
         return type(other) == type(self) and other.id == self.id
+
+    def __str__(self):
+        return f"{self.name} ({self.id})"
 
 
 @dataclass

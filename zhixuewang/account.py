@@ -9,8 +9,7 @@ from zhixuewang.teacher.teacher import TeacherAccount
 
 def load_account(path: str = "user.data") -> Account:
     with open(path, "rb") as f:
-        data = base64.b64decode(f.read())
-        account_data: AccountData = pickle.loads(data)
+        account_data: AccountData = pickle.loads(base64.b64decode(f.read()))
         session = get_session(account_data.username, account_data.encoded_password)
         if account_data.role == Role.student:
             return StudentAccount(session).set_base_info()
@@ -35,9 +34,7 @@ def login_student_id(user_id: str, password: str) -> StudentAccount:
     Returns:
         StudentAccount
     """
-    session = get_session_id(user_id, password)
-    student = StudentAccount(session)
-    return student.set_base_info()
+    return StudentAccount(get_session_id(user_id, password)).set_base_info()
 
 
 def login_student(username: str, password: str) -> StudentAccount:
@@ -55,9 +52,7 @@ def login_student(username: str, password: str) -> StudentAccount:
     Returns:
         StudentAccount
     """
-    session = get_session(username, password)
-    student = StudentAccount(session)
-    return student.set_base_info()
+    return StudentAccount(get_session(username, password)).set_base_info()
 
 
 def login_teacher_id(user_id: str, password: str) -> TeacherAccount:
@@ -75,9 +70,11 @@ def login_teacher_id(user_id: str, password: str) -> TeacherAccount:
     Returns:
         TeacherAccount
     """
-    session = get_session_id(user_id, password)
-    teacher = TeacherAccount(session)
-    return teacher.set_base_info().set_advanced_info()
+    return (
+        TeacherAccount(get_session_id(user_id, password))
+        .set_base_info()
+        .set_advanced_info()
+    )
 
 
 def login_teacher(username: str, password: str) -> TeacherAccount:
@@ -95,9 +92,11 @@ def login_teacher(username: str, password: str) -> TeacherAccount:
     Returns:
         TeacherAccount
     """
-    session = get_session(username, password)
-    teacher = TeacherAccount(session)
-    return teacher.set_base_info().set_advanced_info()
+    return (
+        TeacherAccount(get_session(username, password))
+        .set_base_info()
+        .set_advanced_info()
+    )
 
 
 def login_id(user_id: str, password: str) -> Account:
@@ -119,7 +118,7 @@ def login_id(user_id: str, password: str) -> Account:
     session = get_session_id(user_id, password)
     if check_is_student(session):
         return StudentAccount(session).set_base_info()
-    return TeacherAccount(session).set_base_info()
+    return TeacherAccount(session).set_base_info().set_advanced_info()
 
 
 def login(username: str, password: str) -> Account:

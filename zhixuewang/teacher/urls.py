@@ -20,10 +20,10 @@ class Url:
     GET_EXAM_DETAIL_URL = f"{BASE_URL}/scanmuster/cloudRec/scanrecognition"
 
     GET_EXAM_SCHOOLS_URL = f"{BASE_URL}/exam/marking/schoolClass"
-    GET_EXAM_SUBJECTS_URL = f"{BASE_URL}/configure/class/getSubjectsIncludeSubAndGroup"
-    # 后必须接上paperId
-    # ORIGINAL_PAPER_URL = f"{BASE_URL}/classreport/class/student/checksheet/?userId="
-    ORIGINAL_PAPER_URL = f"{BASE_URL}/classreport/class/student/checksheet/"
+    GET_EXAM_SUBJECTS_URL = (
+        f"{BASE_URL}/configure/class/getSubjectsIncludeSubAndGroup"  # 后必须接上paperId
+    )
+    ORIGINAL_PAPER_URL = f"{BASE_URL}/classreport/class/student/checksheet/"  # ?userId=
 
     GET_ADVANCED_INFORMATION_URL = f"{BASE_URL}/paperfresh/api/common/getCurrentUser"
     GET_STUDENT_STATUS_URL = f"{BASE_URL}/api-teacher/home/getStudentStatus"

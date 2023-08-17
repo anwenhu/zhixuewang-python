@@ -1,4 +1,3 @@
-import json
 import requests
 from zhixuewang.exceptions import LoginError, UserNotFoundError, UserOrPassError
 import base64
@@ -32,8 +31,8 @@ def get_session(username: str, password: str, _type: str = "auto") -> requests.S
     Returns:
         requests.session:
     """
-    if len(password) != 32:
-        password = (
+    password = (
+        (
             pow(
                 int.from_bytes(password.encode()[::-1], "big"),
                 65537,
@@ -41,44 +40,46 @@ def get_session(username: str, password: str, _type: str = "auto") -> requests.S
             )
             .to_bytes(16, "big")
             .hex()
-        )  # by immoses648
+        )
+        if len(password) != 32
+        else password
+    )
     session = get_basic_session()
-    r = session.get(Url.SSO_URL)
-    json_obj = json.loads(r.text.strip().replace("\\", "").replace("'", "")[1:-1])
+    json_obj = eval(eval(session.get(Url.SSO_URL).text.strip()))
     if json_obj["code"] != 1000:
         raise LoginError(json_obj["data"])
-    lt = json_obj["data"]["lt"]
-    execution = json_obj["data"]["execution"]
-    r = session.get(
-        Url.SSO_URL,
-        params={
-            "encode": "true",
-            "sourceappname": "tkyh,tkyh",
-            "_eventId": "submit",
-            "appid": "zx-container-client",
-            "client": "web",
-            "type": "loginByNormal",
-            "key": _type,
-            "lt": lt,
-            "execution": execution,
-            "customLogoutUrl": "https://www.zhixue.com/login.html",
-            "username": username,
-            "password": password,
-        },
+    json_obj = eval(
+        eval(
+            session.get(
+                Url.SSO_URL,
+                params={
+                    "encode": "true",
+                    "sourceappname": "tkyh,tkyh",
+                    "_eventId": "submit",
+                    "appid": "zx-container-client",
+                    "client": "web",
+                    "type": "loginByNormal",
+                    "key": _type,
+                    "lt": json_obj["data"]["lt"],
+                    "execution": json_obj["data"]["execution"],
+                    "customLogoutUrl": "https://www.zhixue.com/login.html",
+                    "username": username,
+                    "password": password,
+                },
+            ).text.strip()
+        )
     )
-    json_obj = json.loads(r.text.strip().replace("\\", "").replace("'", "")[1:-1])
     if json_obj["code"] != 1001:
         if json_obj["code"] == 1002:
             raise UserOrPassError()
         if json_obj["code"] == 2009:
             raise UserNotFoundError()
         raise LoginError(json_obj["data"])
-    ticket = json_obj["data"]["st"]
     session.post(
         Url.SERVICE_URL,
         data={
             "action": "login",
-            "ticket": ticket,
+            "ticket": json_obj["data"]["st"],
         },
     )
     session.cookies.set("uname", base64.b64encode(username.encode()).decode())
