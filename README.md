@@ -1,4 +1,6 @@
 # zhixuewang-python
+**注意: 此项目已基本完成, 预计不会有大的更新 (但有想法的还是可以进群或是提issue)**
+
 
 ![](https://img.shields.io/badge/License-MIT-blue) ![](https://img.shields.io/badge/Python-3+-green) ![](https://img.shields.io/pypi/v/zhixuewang)
 
@@ -48,7 +50,7 @@ print(zxw.get_self_mark())
 
 如果您在使用的过程中遇到任何问题，或是有任何建议：
 
-① 加入QQ群进行讨论：862767072（备注：GitHub智学网库）；
+① 加入QQ群进行讨论：862767072（备注：**GitHub智学网库**）；
 
 ② 前往 [Issues](https://github.com/anwenhu/zhixuewang/issues) 进行提问；
 
