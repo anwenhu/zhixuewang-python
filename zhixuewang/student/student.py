@@ -12,6 +12,7 @@ from zhixuewang.models import (
     Exam,
     HwResource,
     HwType,
+    HwAnswer,
     Mark,
     Role,
     StuHomework,
@@ -21,7 +22,7 @@ from zhixuewang.models import (
     School,
     Sex,
     Grade,
-    StuPerson,
+    StuPerson
 )
 from zhixuewang.exceptions import (
     UserDefunctError,
@@ -526,7 +527,7 @@ class StudentAccount(Account, StuPerson):
         """获取指定作业的作业资源(例如题目文档)
 
         Args:
-            homework (HwResource): 作业
+            homework (StuHomework): 作业
         Returns:
             List[HwResource]: 作业资源
         """
@@ -556,6 +557,45 @@ class StudentAccount(Account, StuPerson):
         for each in data["topicAttachments"]:
             resources.append(HwResource(name=each["name"], path=each["path"]))
         return resources
+
+    def get_homework_answer(self, homework: StuHomework) -> List[HwAnswer]:
+        """获取指定作业的答案
+
+        Args:
+            homework (StuHomework): 作业
+        # Returns:
+        #     List[HwAnswer]: 作业答案
+        """
+        self.update_login_status()
+        if homework.type.code == 102 or homework.type.code == 107:  # TODO 题库作业答案？
+            return ExtendedList([])
+        r = self._session.post(
+            Url.GET_HOMEWORK_RESOURCE_URL,
+            json={
+                "base": {
+                    "appId": "WNLOIVE",
+                    "appVersion": "",
+                    "sysVersion": "v1001",
+                    "sysType": "web",
+                    "packageName": "com.iflytek.edu.hw",
+                    "udid": self.id,
+                    "expand": {},
+                },
+                "params": {"hwId": homework.id},
+            },
+            headers={
+                "Authorization": self._get_auth_header()["XToken"],
+            },
+        )
+        data = r.json()["result"]
+        ans = []
+        for section in data['sectionList']:
+            for topic in section['topicList']:
+                for child in topic['children']:
+                    title = topic['title']
+                    content = ' '.join(child['answers'])  # TODO 答案存储形式？合并所有答案？
+                    ans.append(HwAnswer(str(title), str(content)))
+        return ans
 
     def _set_exam_rank(self, mark: Mark):
         r = self._session.get(
