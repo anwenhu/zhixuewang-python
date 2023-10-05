@@ -306,6 +306,12 @@ class HwResource:
 
 
 @dataclass
+class HwAnswer:
+    title: str = ""
+    content: str = ""
+
+
+@dataclass
 class ErrorBookTopic:
     analysis_html: str
     answer_html: str
