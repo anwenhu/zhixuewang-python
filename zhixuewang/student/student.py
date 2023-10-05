@@ -1,12 +1,10 @@
 import hashlib
 import json
-# import math
 import time
 import uuid
 from typing import List, Tuple, Union
 from zhixuewang.models import (
     Account,
-    # BasicSubject,
     ErrorBookTopic,
     ExtendedList,
     Exam,
@@ -57,13 +55,12 @@ class StudentAccount(Account, StuPerson):
         }
         self.exams: ExtendedList[Exam] = ExtendedList()
 
-    def _get_auth_header(self) -> dict:
+    def get_auth_header(self) -> dict:
         """获取header"""
         self.update_login_status()
         auth_guid = str(uuid.uuid4())
         auth_time_stamp = str(int(time.time() * 1000))
         auth_token = _md5_encode(auth_guid + auth_time_stamp + "iflytek!@#123student")
-        # token, cur_time = self._token_timestamp
         token, cur_time = self._auth["token"], self._auth["timestamp"]
         if token and time.time() - cur_time < 600:  # 判断token是否过期
             return {
@@ -83,19 +80,17 @@ class StudentAccount(Account, StuPerson):
             },
         )
         if not r.ok:
-            raise PageConnectionError(f"_get_auth_header中出错, 状态码为{r.status_code}")
-        # self._token_timestamp[0] = r.json()["result"]
+            raise PageConnectionError(f"get_auth_header出错 \n {r.text}")
         self._auth["token"] = r.json()["result"]
-        # self._token_timestamp[1] = time.time()
         self._auth["timestamp"] = time.time()
-        return self._get_auth_header()
+        return self.get_auth_header()
 
     def set_base_info(self):
         """设置账户基本信息, 如用户id, 姓名, 学校等"""
         self.update_login_status()
         r = self._session.get(Url.INFO_URL)
         if not r.ok:
-            raise PageConnectionError(f"set_base_info出错, 状态码为{r.status_code}")
+            raise PageConnectionError(f"set_base_info出错 \n {r.text}")
         json_data = r.json()["student"]
         if not json_data.get("clazz", False):
             raise UserDefunctError()
@@ -154,10 +149,10 @@ class StudentAccount(Account, StuPerson):
         r = self._session.get(
             Url.GET_EXAM_URL,
             params={"pageIndex": page_index, "pageSize": 10},
-            headers=self._get_auth_header(),
+            headers=self.get_auth_header(),
         )
         if not r.ok:
-            raise PageConnectionError(f"get_page_exam中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(f"get_page_exam出错 \n {r.text}")
         json_data = r.json()["result"]
         for exam_data in json_data["examList"]:
             exam = Exam(id=exam_data["examId"], name=exam_data["examName"])
@@ -169,9 +164,9 @@ class StudentAccount(Account, StuPerson):
     def get_latest_exam(self) -> Exam:
         """获取最新考试"""
         self.update_login_status()
-        r = self._session.get(Url.GET_RECENT_EXAM_URL, headers=self._get_auth_header())
+        r = self._session.get(Url.GET_RECENT_EXAM_URL, headers=self.get_auth_header())
         if not r.ok:
-            raise PageConnectionError(f"get_latest_exam中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(f"get_latest_exam出错 \n {r.text}")
         json_data = r.json()["result"]
         exam_info_data = json_data["examInfo"]
 
@@ -221,10 +216,10 @@ class StudentAccount(Account, StuPerson):
         r = self._session.get(
             Url.GET_MARK_URL,
             params={"examId": exam.id},
-            headers=self._get_auth_header(),
+            headers=self.get_auth_header(),
         )
         if not r.ok:
-            raise PageConnectionError(f"__get_self_mark中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(f"__get_self_mark出错 \n {r.text}")
         json_data = r.json()
         json_data = json_data["result"]
         # exam.name = json_data["total_score"]["examName"]
@@ -284,10 +279,10 @@ class StudentAccount(Account, StuPerson):
         r = self._session.get(
             Url.GET_SUBJECT_URL,
             params={"examId": exam.id},
-            headers=self._get_auth_header(),
+            headers=self.get_auth_header(),
         )
         if not r.ok:
-            raise PageConnectionError(f"__get_subjects中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(f"__get_subjects出错 \n {r.text}")
         json_data = r.json()
         for subject in json_data["result"]["paperList"]:
             subjects.append(
@@ -344,18 +339,18 @@ class StudentAccount(Account, StuPerson):
         subject = self.__get_subject(exam, subject_data)
         return subject if subject is not None else Subject()
 
-    def __get_original(self, subject_id: str, exam_id: str) -> List[str]:
+    def __get_original(self, topic_set_id: str, exam_id: str) -> List[str]:
         self.update_login_status()
         r = self._session.get(
             Url.GET_ORIGINAL_URL,
             params={
                 "examId": exam_id,
-                "paperId": subject_id,
+                "paperId": topic_set_id,
             },
-            headers=self._get_auth_header(),
+            headers=self.get_auth_header(),
         )
         if not r.ok:
-            raise PageConnectionError(f"__get_original中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(f"__get_original出错 \n {r.text}")
         json_data = r.json()
         if json_data["result"] == "":
             print(json_data)
@@ -389,7 +384,7 @@ class StudentAccount(Account, StuPerson):
         clazzs: ExtendedList[StuClass] = ExtendedList()
         r = self._session.get(Url.GET_CLAZZS_URL, params={"d": int(time.time())})
         if not r.ok:
-            raise PageConnectionError(f"get_clazzs中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(f"get_clazzs出错 \n {r.text}")
         json_data = r.json()
         for clazz in json_data["clazzs"]:
             clazzs.append(
@@ -430,7 +425,7 @@ class StudentAccount(Account, StuPerson):
             params={"r": f"{self.id}student", "clazzId": clazz_id},
         )
         if not r.ok:
-            raise PageConnectionError(f"__get_classmates中出错, 状态码为{r.status_code}")
+            raise PageConnectionError(f"__get_classmates出错 \n {r.text}")
         json_data = r.json()
         for classmate_data in json_data:
             classmate = StuPerson(
@@ -446,7 +441,6 @@ class StudentAccount(Account, StuPerson):
                     ),
                 ),
                 code=classmate_data.get("code"),
-                # email=classmate_data["email"],
                 gender=Sex.BOY if classmate_data["gender"] == "1" else Sex.GIRL,
                 mobile=classmate_data["mobile"],
             )
@@ -494,7 +488,7 @@ class StudentAccount(Account, StuPerson):
                 "completeStatus": 1 if is_complete else 0,
                 "pageSize": size,  # 取几个
                 "subjectCode": subject_code,
-                "token": self._get_auth_header()["XToken"],
+                "token": self.get_auth_header()["XToken"],
                 "createTime": create_time,  # 创建时间在多久以前的 0 为从最新开始
             },
         )
@@ -512,9 +506,6 @@ class StudentAccount(Account, StuPerson):
                     begin_time=each["beginTime"] / 1000,
                     end_time=each["endTime"] / 1000,
                     create_time=each["createTime"] / 1000,
-                    # subject=BasicSubject(
-                    #     name=each["subjectName"], code=each["subjectCode"]
-                    # ),
                     is_allow_makeup=bool(each["isAllowMakeup"]),
                     class_id=each["classId"],
                     stu_hwid=each["stuHwId"],
@@ -548,7 +539,7 @@ class StudentAccount(Account, StuPerson):
                 "params": {"hwId": homework.id},
             },
             headers={
-                "Authorization": self._get_auth_header()["XToken"],
+                "Authorization": self.get_auth_header()["XToken"],
             },
         )
         data = r.json()["result"]
@@ -561,7 +552,7 @@ class StudentAccount(Account, StuPerson):
         r = self._session.get(
             Url.GET_EXAM_LEVEL_TREND_URL,
             params={"examId": mark.exam.id, "pageIndex": 1, "pageSize": 1},
-            headers=self._get_auth_header(),
+            headers=self.get_auth_header(),
         )
         data = r.json()
         if data["errorCode"] != 0:
@@ -570,7 +561,7 @@ class StudentAccount(Account, StuPerson):
         r = self._session.get(
             Url.GET_SUBJECT_DIAGNOSIS,
             params={"examId": mark.exam.id},
-            headers=self._get_auth_header(),
+            headers=self.get_auth_header(),
         )
         data = r.json()
         if data["errorCode"] != 0:
@@ -578,22 +569,17 @@ class StudentAccount(Account, StuPerson):
         for each in data["result"]["list"]:
             each_mark = mark.find(lambda t: t.subject.code == each["subjectCode"])
             if each_mark is not None:
-                # if each["myRank"] == 0:
-                #     each_mark.class_rank = 1
-                # else:
-                #     each_mark.class_rank = math.ceil(each["myRank"] / 100 * num)
                 each_mark.class_rank = round(num - (100 - each["myRank"]) / 100 * (num - 1))
 
-    def get_errorbook(self, exam_id, subject_id: str) -> List[ErrorBookTopic]:
+    def get_errorbook(self, exam_id, topic_set_id: str) -> List[ErrorBookTopic]:
         r = self._session.get(
             Url.GET_ERRORBOOK_URL,
-            params={"examId": exam_id, "paperId": subject_id},
-            headers=self._get_auth_header(),
+            params={"examId": exam_id, "paperId": topic_set_id},
+            headers=self.get_auth_header(),
         )
         data = r.json()
-        if (
-                data["errorCode"] != 0
-        ):  # {'errorCode': 40217, 'errorInfo': '暂时未收集到试题信息,无法查看', 'result': ''}
+        if data["errorCode"] != 0: 
+            # {'errorCode': 40217, 'errorInfo': '暂时未收集到试题信息,无法查看', 'result': ''}
             raise Exception(data)
         result = []
         for each in data["result"]["wrongTopicAnalysis"]["topicList"]:
@@ -614,7 +600,7 @@ class StudentAccount(Account, StuPerson):
                     standard_answer=each["standardAnswer"],
                     standard_score=each["standardScore"],
                     topic_analysis_img_url=each["topicAnalysisImgUrl"],
-                    subject_id=each["topicId"],
+                    topic_set_id=each["topicId"],
                     topic_img_url=each["topicImgUrl"],
                     topic_source_paper_name=each["topicSourcePaperName"],
                 )

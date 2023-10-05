@@ -1,6 +1,5 @@
 import asyncio
 from typing import List, Tuple
-import httpx
 from zhixuewang.models import (
     Account,
     Exam,
@@ -95,29 +94,6 @@ class TeacherAccount(Account, TeaPerson):
         self.roles = json_data["roles"]
         return self
 
-    async def __get_school_exam_classes(
-        self, school_id: str, subject_id: str
-    ) -> List[StuClass]:
-        async with httpx.AsyncClient(cookies=self._session.cookies) as client:
-            r = await client.get(
-                Url.GET_EXAM_SCHOOLS_URL,
-                params={"schoolId": school_id, "markingPaperId": subject_id},
-            )
-            data = r.json()
-            if data is None:
-                return []
-            classes = []
-
-            for each in data:
-                classes.append(
-                    StuClass(
-                        id=each["classId"],
-                        name=each["className"],
-                        school=School(id=each["schoolId"]),
-                    )
-                )
-            return classes
-
     def get_student_status(
         self,
         clazz_id: str,
@@ -137,7 +113,6 @@ class TeacherAccount(Account, TeaPerson):
         self.update_login_status()
         r = self._session.get(
             Url.GET_STUDENT_STATUS_URL,
-            headers={"referers": "https://www.zhixue.com/api-teacher/home/index"},
             params={
                 "roleType": role_type,
                 "gradeCode": grade_code,
@@ -146,31 +121,38 @@ class TeacherAccount(Account, TeaPerson):
             },
         )
         data = r.json()["result"]
-        critical_student: list = []  # 临近生
-        backword_student: list = []  # 下滑生
-        unstable_student: list = []  # 波动生
-        if data["criticalStudents"] != None:
-            critical_student = [
-                StuPerson(id=i["userId"], name=i["userName"])
-                for i in data["criticalStudents"]
+        students = ([], [], []) # 临近生 下滑生 波动生
+        for i, each_kind_students in enumerate([data["criticalStudents"], data["backwordStudents"], data["unstableStudents"]]):
+            if each_kind_students:
+                students[i] = [
+                StuPerson(id=each["userId"], name=each["userName"])
+                for each in each_kind_students
             ]
-        if data["backwordStudents"] != None:
-            backword_student = [
-                StuPerson(id=i["userId"], name=i["userName"])
-                for i in data["backwordStudents"]
-            ]
-        if data["unstableStudents"] != None:
-            unstable_student = [
-                StuPerson(id=i["userId"], name=i["userName"])
-                for i in data["unstableStudents"]
-            ]
-        return (critical_student, backword_student, unstable_student)
+        return students
 
     def get_school_exam_classes(
-        self, school_id: str, subject_id: str
+        self, school_id: str, topic_set_id: str
     ) -> List[StuClass]:
         self.update_login_status()
-        return asyncio.run(self.__get_school_exam_classes(school_id, subject_id))
+        r = self._session.get(
+            Url.GET_EXAM_SCHOOLS_URL,
+            params={"schoolId": school_id, "markingPaperId": topic_set_id},
+        )
+        data = r.json()
+        if data is None:
+            return []
+        classes = []
+
+        for each in data:
+            classes.append(
+                StuClass(
+                    id=each["classId"],
+                    name=each["className"],
+                    school=School(id=each["schoolId"]),
+                )
+            )
+        return classes
+
 
     def get_original_paper(
         self, user_id: str, paper_id: str, save_to_path: str
@@ -268,18 +250,18 @@ class TeacherAccount(Account, TeaPerson):
 
     def get_marking_progress(
         self,
-        subject_id: str,
+        topic_set_id: str,
     ) -> List[MarkingProgress]:
         """
         获取某场考试指定科目阅卷情况
         Args:
-            subject_id (str): 科目id
+            topic_set_id (str): 科目id
         Return:
             List[MarkingProgress]
         """
         r = self._session.post(
             "https://pt-ali-bj-re.zhixue.com/marking/marking/markingTopicProgress/",
-            data={"markingPaperId": subject_id},
+            data={"markingPaperId": topic_set_id},
             headers={"token": self.get_token()},
         )
         data = r.json()
@@ -334,7 +316,7 @@ class TeacherAccount(Account, TeaPerson):
         默认获取最新学期的考试
         `year`和`index`只需要传一个即可，均传默认使用`year`
         Args:
-            year (int): 需要查询的年级，如2022级则传入2022
+            year (int): 需要查询的年级, 如2022级则传入2022
             index (int): 查询距离现在第几个学期, 如传入3表示获取上三个学期的考试
             class_id (str): 指定查看考试的班级, 默认为全部班级
             exam_name (str): 指定需要查看的考试名称
@@ -359,7 +341,6 @@ class TeacherAccount(Account, TeaPerson):
             #! 按 学期 查询
             academic_infos = self._get_academic_info()
             academic_info = academic_infos[index - 1]
-            print(academic_info)
             params_data.update(
                 {
                     "searchType": "schoolYearType",
@@ -385,7 +366,6 @@ class TeacherAccount(Account, TeaPerson):
                 }
             )
             r = self._session.get(Url.GET_EXAMS_URL, params=params_data)
-        print(r.url)
         exams = []
         data = r.json()["result"]
         if "classPaperSummaryList" not in data:
@@ -418,8 +398,7 @@ class TeacherAccount(Account, TeaPerson):
     def get_token(self) -> str:
         if self._token is not None:
             return self._token
-        r = self._session.get("https://www.zhixue.com/container/app/token/getToken")
-        self._token = r.json()["result"]
+        self._token = self._session.get(Url.GET_TOKEN_URL).json()["result"]
         return self._token
 
     def get_session(self):

@@ -189,19 +189,18 @@ class Subject(BasicSubject):
 @dataclass
 class TextBook:
     """教科书属性"""
-    code: str = None
+    code: str = ""
     """教科书编号"""
-    name: int = None
+    name: str = ""
     """教科书名称"""
-    version: str = None
+    version: str = ""
     """教科书版本，如北师大、人教、部编等"""
-    versionCode: int = None
+    versionCode: int = 0
     """教科书版本编号"""
-    bindSubject: Subject = None
+    bindSubject: BasicSubject = BasicSubject()
     def __str__(self) -> str:
-        return (
-            f"{self.bindSubject.name} {self.name}（{self.version}）"
-        )
+        return f"{self.bindSubject.name} {self.name} ({self.version})"
+        
 
 @dataclass(eq=False)
 class Exam:
@@ -320,7 +319,7 @@ class ErrorBookTopic:
     score: float
     standard_answer: str  # 网址
     standard_score: float
-    subject_id: str
+    topic_set_id: str
     topic_img_url: str  # 好看的题目
     topic_source_paper_name: str
     image_answer: List[str]  # 你的答案

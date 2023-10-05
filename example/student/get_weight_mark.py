@@ -1,6 +1,5 @@
 from zhixuewang import rewrite_str, login_student
 from zhixuewang.models import Mark
-from getpass import getpass
 
 
 @rewrite_str(Mark)
@@ -17,7 +16,7 @@ def _(self):
 
 
 if __name__ == "__main__":
-    username = input("请输入用户名:")
-    password = getpass()
+    username = input("请输入用户名:").strip()
+    password = input("请输入密码:").strip()
     zxw = login_student(username, password)
     print(zxw.get_self_mark())

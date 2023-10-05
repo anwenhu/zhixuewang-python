@@ -25,3 +25,5 @@ class Url:
 
     GET_ADVANCED_INFORMATION_URL = f"{BASE_URL}/paperfresh/api/common/getCurrentUser"
     GET_STUDENT_STATUS_URL = f"{BASE_URL}/api-teacher/home/getStudentStatus"
+    
+    GET_TOKEN_URL = f"{BASE_URL}/container/app/token/getToken"
