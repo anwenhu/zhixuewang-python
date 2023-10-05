@@ -31,7 +31,8 @@ class Url:
     APP_BASE_URL = "https://mhw.zhixue.com"
     # Homework
     GET_HOMEWORK_URL = f"{APP_BASE_URL}/homework_middle_service/stuapp/getStudentHomeWorkList"
-    GET_HOMEWORK_RESOURCE_URL = f"{APP_BASE_URL}/hw/manage/homework/redeploy"
+    GET_HOMEWORK_EXERCISE_URL = f"{APP_BASE_URL}/hw/manage/homework/redeploy"
+    GET_HOMEWORK_BANK_URL = f"{APP_BASE_URL}/hwreport/question/listView"
 
     GET_EXAM_LEVEL_TREND_URL = f"{BASE_URL}/zhixuebao/report/exam/getLevelTrend"
 
