@@ -549,19 +549,16 @@ class StudentAccount(Account, StuPerson):
             resources.append(HwResource(name=each["name"], path=each["path"]))
         return resources
 
-    def get_homework_answer(self, homework: StuHomework) -> List[HwAnswer]:
-        """获取指定作业的答案
-
+    def get_exercise_answer(self, homework: StuHomework) -> List[HwAnswer]:
+        """获取指定**自由出题**的答案
         Args:
             homework (StuHomework): 作业
-        # Returns:
-        #     List[HwAnswer]: 作业答案
+        Returns:
+            List[HwAnswer]: 作业答案
         """
         self.update_login_status()
-        if homework.type.code == 102 or homework.type.code == 107:  # TODO 题库作业答案？
-            return ExtendedList([])
         r = self._session.post(
-            Url.GET_HOMEWORK_RESOURCE_URL,
+            Url.GET_HOMEWORK_EXERCISE_URL,
             json={
                 "base": {
                     "appId": "WNLOIVE",
@@ -587,6 +584,62 @@ class StudentAccount(Account, StuPerson):
                     content = ' '.join(child['answers'])  # TODO 答案存储形式？合并所有答案？
                     ans.append(HwAnswer(str(title), str(content)))
         return ans
+
+    def get_bank_answer(self, homework: StuHomework) -> List[HwAnswer]:
+        """获取指定**题库练习**的答案
+        Args:
+            homework (StuHomework): 作业
+        Returns:
+            List[HwAnswer]: 作业答案
+        """
+        self.update_login_status()
+        r = self._session.post(
+            Url.GET_HOMEWORK_BANK_URL,
+            json={
+                "base": {
+                    "appId": "OAXI57PG",
+                    "appVersion": "",
+                    "sysVersion": "v1001",
+                    "sysType": "web",
+                    "packageName": "com.iflytek.edu.hw",
+                    "udid": self.id,
+                    "expand": {},
+                },
+                "params": {
+                    "classId": homework.class_id,
+                    "hwId": homework.id,
+                },
+            },
+            headers={
+                "Authorization": self._get_auth_header()["XToken"],
+            },
+        )
+        print(r.json())
+        data = r.json()["result"]
+        ans = []
+        for question in data['questionList']:
+            content = ''
+            title = question['questionTitle']
+            for subquestion in question['subQuestion']:
+                content = content + ' '.join(subquestion['answer'])
+            ans.append(HwAnswer(str(title), str(content)))
+        return ans
+
+    def get_homework_answer(self, homework: StuHomework) -> List[HwAnswer]:
+        """获取指定作业的答案
+
+        Args:
+            homework (StuHomework): 作业
+        Returns:
+            List[HwBankAnswer]: 作业答案
+        """
+        self.update_login_status()
+        if homework.type.code == 107:
+            return ExtendedList([])
+        if homework.type.code == 105:
+            return self.get_exercise_answer(homework)
+        else:
+            return self.get_bank_answer(homework)
 
     def _set_exam_rank(self, mark: Mark):
         r = self._session.get(
