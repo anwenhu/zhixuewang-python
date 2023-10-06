@@ -14,6 +14,7 @@ class TeacherRole(Enum):
     TEACHER = "老师"
     HEADMASTER = "校长"
     VICE_HEADMASTER = "副校长"
+    VICE_HEADTEACHER = "副班主任"
     HEADTEACHER = "班主任"
     SCHOOL_ADMINISTRATOR = "校管理员"
     GRADE_DIRECTER = "年级组长"
