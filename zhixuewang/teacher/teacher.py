@@ -188,6 +188,8 @@ class TeacherAccount(Account, TeaPerson):
             "gradeDirecter": "年级组长",
             "headteacher": "班主任",
             "headmaster": "校长",
+            "viceHeadteacher": "副班主任",
+            "viceHeadmaster": "副校长",
             "schoolAdministrator": "校管理员",
         }
         for role in self.roles:
