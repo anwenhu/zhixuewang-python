@@ -1,4 +1,3 @@
-import asyncio
 from typing import List, Tuple
 from zhixuewang.models import (
     Account,
@@ -93,42 +92,6 @@ class TeacherAccount(Account, TeaPerson):
         self.name = json_data.get("name")
         self.roles = json_data["roles"]
         return self
-
-    def get_student_status(
-        self,
-        clazz_id: str,
-        subject_code: str,
-        grade_code: str,
-        role_type: str = "teacher",
-    ) -> Tuple[List[StuPerson], List[StuPerson], List[StuPerson]]:
-        """获取学生信息（如进步，退步等），返回临近生，下滑生，波动生
-        Args:
-            clazz_id (str): 为需要查询班级id
-            subject_code (str): 为需要查询的学科code
-            grade_code (str): 科目code
-            role_type (str)
-        Return:
-            Tuple[List[StuPerson], List[StuPerson], List[StuPerson]]: 由 临近生,下滑生,波动生 组成的元组
-        """
-        self.update_login_status()
-        r = self._session.get(
-            Url.GET_STUDENT_STATUS_URL,
-            params={
-                "roleType": role_type,
-                "gradeCode": grade_code,
-                "classId": clazz_id,
-                "subjectCode": subject_code,
-            },
-        )
-        data = r.json()["result"]
-        students = ([], [], []) # 临近生 下滑生 波动生
-        for i, each_kind_students in enumerate([data["criticalStudents"], data["backwordStudents"], data["unstableStudents"]]):
-            if each_kind_students:
-                students[i] = [
-                StuPerson(id=each["userId"], name=each["userName"])
-                for each in each_kind_students
-            ]
-        return students
 
     def get_school_exam_classes(
         self, school_id: str, topic_set_id: str
