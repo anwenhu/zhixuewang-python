@@ -614,7 +614,6 @@ class StudentAccount(Account, StuPerson):
                 "Authorization": self.get_auth_header()["XToken"],
             },
         )
-        print(r.json())
         data = r.json()["result"]
         ans = []
         for question in data['questionList']:
@@ -634,7 +633,7 @@ class StudentAccount(Account, StuPerson):
             List[HwBankAnswer]: 作业答案
         """
         self.update_login_status()
-        if homework.type.code != 105 or homework.stu_hwid != 102:
+        if homework.type.code != 105 and homework.type.code != 102:
             return []
         if homework.type.code == 105:
             return self.get_exercise_answer(homework)
