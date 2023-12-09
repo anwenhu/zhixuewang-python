@@ -7,6 +7,7 @@ from zhixuewang.urls import Url
 
 def get_basic_session() -> requests.Session:
     session = requests.Session()
+    session.trust_env = False
     session.headers[
         "User-Agent"
     ] = "Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1"
@@ -43,7 +44,8 @@ def get_session(username: str, password: str, _type: str = "auto") -> requests.S
             .hex()
         )  # by immoses648
     session = get_basic_session()
-    r = session.get(Url.SSO_URL)
+    r = session.get(Url.SSO_URL, proxies={'https': None, 'http': None})
+
     json_obj = json.loads(r.text.strip().replace("\\", "").replace("'", "")[1:-1])
     if json_obj["code"] != 1000:
         raise LoginError(json_obj["data"])
