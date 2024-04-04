@@ -197,7 +197,7 @@ class TextBook:
     """教科书版本，如北师大、人教、部编等"""
     versionCode: int = 0
     """教科书版本编号"""
-    bindSubject: BasicSubject = BasicSubject()
+    bindSubject: BasicSubject = field(default_factory=BasicSubject)
     def __str__(self) -> str:
         return f"{self.bindSubject.name} {self.name} ({self.version})"
         
