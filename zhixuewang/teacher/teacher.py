@@ -91,7 +91,7 @@ class TeacherAccount(Account, TeaPerson):
         self.id = json_data.get("id")
         self.mobile = json_data.get("mobile")
         self.name = json_data.get("name")
-        self.roles = json_data["roles"]
+        self.roles = json_data.get("roles")
         return self
 
     def get_student_status(
