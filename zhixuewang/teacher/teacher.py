@@ -41,8 +41,8 @@ class TeacherAccount(Account, TeaPerson):
         if r.status_code != 200:
             return self
         data = r.json()["result"]
-        self.province = data["province"]["name"]
-        self.city = data["city"]["name"]
+        self.province = data["province"]["name"] if data["province"] else None
+        self.city = data["city"]["name"] if data["city"] else None
         if data["school"]:
             self.school = School(
                 name=data["school"]["name"], id=data["school"]["id"]
