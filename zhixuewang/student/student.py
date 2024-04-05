@@ -56,6 +56,10 @@ class StudentAccount(Account, StuPerson):
         }
         self.exams: ExtendedList[Exam] = ExtendedList()
 
+    def get_session(self):
+        '''获得学生端Session'''
+        return self._session
+    
     def get_auth_header(self) -> dict:
         """获取header"""
         self.update_login_status()
