@@ -57,3 +57,7 @@ print(zxw.get_self_mark())
 ③ 如果您想直接贡献代码，欢迎直接 [Pull requests](https://github.com/anwenhu/zhixuewang-python/pulls)。
 
 如果有其它不常见的功能需求, 可以前往 [MasterYuan418/zxext](https://github.com/MasterYuan418/zxext) 查找或提出。
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=anwenhu/zhixuewang-python&type=Date)](https://star-history.com/#anwenhu/zhixuewang-python&Date)
