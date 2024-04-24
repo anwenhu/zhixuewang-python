@@ -12,6 +12,10 @@ from zhixuewang.models import (
     HwType,
     HwAnswer,
     Mark,
+    MarkingRecord,
+    SubTopicRecord,
+    TopicRecord,
+    AnswerRecord,
     Role,
     StuHomework,
     Subject,
@@ -27,6 +31,7 @@ from zhixuewang.exceptions import (
     PageConnectionError,
 )
 from zhixuewang.student.urls import Url
+from datetime import datetime
 
 
 def _check_is_uuid(msg: str):
@@ -383,6 +388,61 @@ class StudentAccount(Account, StuPerson):
         if not subject:
             return []
         return self.__get_original(subject.id, exam.id)
+
+    def __get_answer_records(self, topic_set_id: str, exam_id: str):
+        self.update_login_status()
+        r = self._session.get(
+            Url.GET_ORIGINAL_URL,
+            params={
+                "examId": exam_id,
+                "paperId": topic_set_id,
+            },
+            headers=self.get_auth_header(),
+        )
+        if not r.ok:
+            raise PageConnectionError(f"__get_answer_records出错 \n {r.text}")
+        json_data = json.loads(r.json()["result"]["sheetDatas"])
+        records = AnswerRecord()
+        for topic in json_data["userAnswerRecordDTO"]["answerRecordDetails"]:
+            topic_records = TopicRecord(
+                title=topic["dispTitle"],
+                score=topic["score"],
+                standard_score=topic["standardScore"],
+                subtopic_records=None
+            )
+            if "subTopics" in topic:
+                topic_records.subtopic_records = []
+                for subtopic in topic["subTopics"]:
+                    subtopic_record = SubTopicRecord(
+                        score=subtopic["score"], marking_records=[])
+                    for marking in subtopic["teacherMarkingRecords"]:
+                        marking_record = MarkingRecord(
+                            time=datetime.fromtimestamp(marking["markingTime"] / 1e3),
+                            score=marking["score"],
+                            teacher_name=marking["teacherName"]
+                        )
+                        subtopic_record.marking_records.append(marking_record)
+                    topic_records.subtopic_records.append(subtopic_record)
+            records.append(topic_records)
+        return records
+
+    def get_answer_records(self, subject_data: Union[Subject, str], exam_data: Union[Exam, str] = "") -> AnswerRecord:
+        """获得指定考试学科的得分详情
+
+        Args:
+            subject_data (Union[Subject, str]): 学科id 或 学科名称 或 Subject实例
+            exam_data (Union[Exam, str]): 考试id 或 考试名称, 默认为最新考试
+
+        Returns:
+            AnswerRecord: 得分详情
+        """
+        exam = self.get_exam(exam_data)
+        if not exam:
+            return AnswerRecord()
+        subject = self.get_subject(subject_data, exam)
+        if not subject:
+            return AnswerRecord()
+        return self.__get_answer_records(subject.id, exam.id)
 
     def get_clazzs(self) -> ExtendedList[StuClass]:
         """获取当前年级所有班级"""
