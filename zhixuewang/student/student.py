@@ -414,14 +414,16 @@ class StudentAccount(Account, StuPerson):
                 topic_records.subtopic_records = []
                 for subtopic in topic["subTopics"]:
                     subtopic_record = SubTopicRecord(
-                        score=subtopic["score"], marking_records=[])
-                    for marking in subtopic["teacherMarkingRecords"]:
-                        marking_record = MarkingRecord(
-                            time=datetime.fromtimestamp(marking["markingTime"] / 1e3),
-                            score=marking["score"],
-                            teacher_name=marking["teacherName"]
-                        )
-                        subtopic_record.marking_records.append(marking_record)
+                        score=subtopic["score"], marking_records=None)
+                    if "teacherMarkingRecords" in subtopic:
+                        subtopic_record.marking_records = [
+                            MarkingRecord(
+                                time=datetime.fromtimestamp(marking["markingTime"] / 1e3),
+                                score=marking["score"],
+                                teacher_name=marking["teacherName"]
+                            )
+                            for marking in subtopic["teacherMarkingRecords"]
+                        ]
                     topic_records.subtopic_records.append(subtopic_record)
             records.append(topic_records)
         return records

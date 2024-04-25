@@ -282,7 +282,7 @@ class SubTopicRecord:
     """小题得分详情"""
 
     score: float
-    marking_records: ExtendedList[MarkingRecord]
+    marking_records: Union[None, ExtendedList[MarkingRecord]]
 
 
 @dataclass
