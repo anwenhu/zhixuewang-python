@@ -3,6 +3,7 @@ from enum import Enum
 import os
 import pickle
 from typing import List, Callable, Union, TypeVar
+from datetime import datetime
 from dataclasses import dataclass, field
 from zhixuewang.session import get_basic_session, get_session
 from zhixuewang.tools.datetime_tool import get_property
@@ -265,6 +266,37 @@ class Mark(ExtendedList[SubjectScore]):
 
     def __str__(self):
         return self.__repr__()
+
+
+@dataclass
+class MarkingRecord:
+    """批改记录"""
+
+    time: datetime
+    score: float
+    teacher_name: str
+
+
+@dataclass
+class SubTopicRecord:
+    """小题得分详情"""
+
+    score: float
+    marking_records: Union[None, ExtendedList[MarkingRecord]]
+
+
+@dataclass
+class TopicRecord:
+    """题目得分详情"""
+
+    title: str
+    score: float
+    standard_score: float
+    subtopic_records: Union[None, ExtendedList[SubTopicRecord]]
+
+
+class AnswerRecord(ExtendedList[TopicRecord]):
+    """一场考试的得分详情"""
 
 
 @dataclass
