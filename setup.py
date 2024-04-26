@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = "1.2.6"
+version = "1.2.7"
 setup(
     name="zhixuewang",
     version=version,
@@ -8,7 +8,7 @@ setup(
     description="智学网的api",
     license="MIT",
 
-    author="anwenhu,MasterYuan418,immoses648",
+    author="anwenhu,MasterYuan418,immoses648,krn1pnc",
     author_email="anemailpocket@163.com",
 
     packages=find_packages(),

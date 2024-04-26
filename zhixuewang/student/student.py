@@ -401,6 +401,8 @@ class StudentAccount(Account, StuPerson):
         )
         if not r.ok:
             raise PageConnectionError(f"__get_answer_records出错 \n {r.text}")
+        elif not r.json()["result"]:
+            raise PageConnectionError(f"__get_answer_records出错 \n {r.json()}")
         json_data = json.loads(r.json()["result"]["sheetDatas"])
         records = AnswerRecord()
         for topic in json_data["userAnswerRecordDTO"]["answerRecordDetails"]:
