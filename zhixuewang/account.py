@@ -1,8 +1,9 @@
 import base64
 import pickle
+
 from zhixuewang.exceptions import RoleError
 from zhixuewang.models import Account, AccountData, Role
-from zhixuewang.session import check_is_student, get_session, get_session_id
+from zhixuewang.session import check_is_student, get_session, get_session_id, get_basic_session
 from zhixuewang.student.student import StudentAccount
 from zhixuewang.teacher.teacher import TeacherAccount
 
@@ -38,6 +39,25 @@ def login_student_id(user_id: str, password: str) -> StudentAccount:
     session = get_session_id(user_id, password)
     student = StudentAccount(session)
     return student.set_base_info()
+
+def login_cookie(cookies: dict) -> StudentAccount:
+    """通过cookie登录账号
+
+    Args:
+        cookie (dict): 用户cookie
+
+    Returns:
+        Person
+    """
+    session = get_basic_session()
+
+    # 更新会话的cookie
+    session.cookies.update(cookies)
+    session.cookies.set("uname", base64.b64encode(cookies["loginUserName"].encode()).decode())
+
+    if check_is_student(session):
+        return StudentAccount(session).set_base_info()
+    return TeacherAccount(session).set_base_info().set_advanced_info()
 
 
 def login_student(username: str, password: str) -> StudentAccount:
