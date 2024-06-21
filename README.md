@@ -21,11 +21,25 @@ python setup.py install
 
 ## 简单示例
 ### 代码
+#### python代码
 ```python
-from zhixuewang import login
+# from zhixuewang import login_cookie
+from zhixuewang.account import login_cookie
 
-zxw = login(您的智学网账号, 您的智学网密码)
+# zxw = login(您的智学网账号, 您的智学网密码)
+# 因为智学网接口变动暂时失效，请先使用cookie登录方式
+# 复制的cookie字符串
+cookie_string = "xxx"
+
+# 将cookie字符串转换为字典
+cookies = dict(item.split("=") for item in cookie_string.split("; "))
+zxw = login_cookie(cookies)
+
 print(zxw.get_self_mark())
+```
+#### cookie可以在登录智学网网页端后用以下js书签获取
+```javascript
+javascript:(function(){function getCookies(){return document.cookie;}function copyToClipboard(text){const textarea=document.createElement('textarea');textarea.value=text;document.body.appendChild(textarea);textarea.select();document.execCommand('copy');document.body.removeChild(textarea);}const cookies=getCookies();copyToClipboard(cookies);alert('Cookies 已复制到剪切板！');})();
 ```
 ### 结果（仅供参考）
 ```
