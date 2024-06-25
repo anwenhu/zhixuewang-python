@@ -1,6 +1,6 @@
 # zhixuewang-python
-**注意: 此项目已基本完成, 预计不会有大的更新 (但有想法的还是可以进群或是提issue)**
 
+**注意: 由于登录接口变动, 如果只有学生账号, 该项目与智学网网页版并无二致, 此项目将大概率不会再有关于接口的更新**
 
 ![](https://img.shields.io/badge/License-MIT-blue) ![](https://img.shields.io/badge/Python-3+-green) ![](https://img.shields.io/pypi/v/zhixuewang)
 
@@ -53,8 +53,6 @@ javascript:(function(){function getCookies(){return document.cookie;}function co
 生物: 83.0
 总分: 656.5
 ```
-
-其它示例在 [example](https://github.com/anwenhu/zhixuewang-python/tree/master/example) 中。
 
 **更多高级功能请[查看文档](https://zxdoc.risconn.com)。**
 
