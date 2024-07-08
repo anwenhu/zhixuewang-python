@@ -20,7 +20,22 @@ python setup.py install
 
 
 ## 简单示例
-### 代码
+### playwright登录（python3.7+）
+#### 安装依赖
+```
+pip install playwright
+playwright install chromium
+```
+#### python代码
+```python
+from zhixuewang.account import login_playwright
+
+zxw = login_playwright(您的智学网账号, 您的智学网密码)
+# 然后通过浏览器完成人机验证
+
+print(zxw.get_self_mark())
+```
+### 你也可以手动获取cookie登录
 #### python代码
 ```python
 # from zhixuewang import login_cookie
