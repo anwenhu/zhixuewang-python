@@ -6,6 +6,8 @@ from zhixuewang.models import Account, AccountData, Role
 from zhixuewang.session import check_is_student, get_session, get_session_id, get_basic_session
 from zhixuewang.student.student import StudentAccount
 from zhixuewang.teacher.teacher import TeacherAccount
+import asyncio
+from playwright.async_api import async_playwright, Playwright
 
 
 def load_account(path: str = "user.data") -> Account:
@@ -40,7 +42,7 @@ def login_student_id(user_id: str, password: str) -> StudentAccount:
     student = StudentAccount(session)
     return student.set_base_info()
 
-def login_cookie(cookies: dict) -> StudentAccount:
+def login_cookie(cookies: dict) -> Account:
     """通过cookie登录账号
 
     Args:
@@ -52,6 +54,53 @@ def login_cookie(cookies: dict) -> StudentAccount:
     session = get_basic_session()
 
     # 更新会话的cookie
+    session.cookies.update(cookies)
+    session.cookies.set("uname", base64.b64encode(cookies["loginUserName"].encode()).decode())
+
+    if check_is_student(session):
+        return StudentAccount(session).set_base_info()
+    return TeacherAccount(session).set_base_info().set_advanced_info()
+
+async def playwright_get_cookie(playwright: Playwright, username, password):
+    chromium = playwright.chromium
+    browser = await chromium.launch(headless=False)
+    context = await browser.new_context()
+    page = await context.new_page()
+    await page.goto("https://www.zhixue.com/wap_login.html")
+    await page.wait_for_load_state('networkidle')  # 等待网络状态为空闲
+    print(await page.title())
+    await page.fill('#txtUserName', username)
+    await page.fill('#txtPassword', password)
+
+    # 点击注册按钮
+    await asyncio.sleep(0.5)
+    await page.click('#signup_button')
+    await page.wait_for_url("https://www.zhixue.com/container/container/student/index/", timeout=float('inf'))
+    cookies = await page.context.cookies()
+    # print("Cookies:", cookies)
+    # 将Cookie转换为字典
+    cookies_dict = {cookie['name']: cookie['value'] for cookie in cookies}
+    await browser.close()
+    return cookies_dict
+
+async def playwright_process(username: str, password: str):
+    async with async_playwright() as playwright:
+        return await playwright_get_cookie(playwright, username, password)
+
+def login_playwright(username: str, password: str)  -> Account:
+    """通过playwright更加便利的登录账号
+
+            Args:
+                username (str): 用户名, 可以为准考证号, 手机号
+                password (str): 密码
+
+            Returns:
+                Person
+            """
+    session = get_basic_session()
+
+    # 更新会话的cookie
+    cookies = asyncio.run(playwright_process(username, password))
     session.cookies.update(cookies)
     session.cookies.set("uname", base64.b64encode(cookies["loginUserName"].encode()).decode())
 
