@@ -75,7 +75,7 @@ async def playwright_get_cookie(playwright: Playwright, username, password):
     # 点击注册按钮
     await asyncio.sleep(0.5)
     await page.click('#signup_button')
-    await page.wait_for_url("https://www.zhixue.com/container/container/student/index/", timeout=float('inf'))
+    await page.wait_for_url("https://www.zhixue.com/htm-vessel/**", timeout=float('inf'))
     cookies = await page.context.cookies()
     # print("Cookies:", cookies)
     # 将Cookie转换为字典
