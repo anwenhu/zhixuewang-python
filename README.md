@@ -23,7 +23,6 @@ python setup.py install
 ### playwright登录（python3.7+）
 #### 安装依赖
 ```
-pip install playwright
 playwright install chromium
 ```
 #### python代码
