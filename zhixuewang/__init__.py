@@ -1,6 +1,6 @@
 __author__ = "anwenhu,MasterYuan418,immoses648,krn1pnc,Haorwen"
-__date__ = "2024/6/25 14:00"
-__version__ = "1.3.1"
+__date__ = "2025/1/11 23:14"
+__version__ = "1.3.2"
 
 from zhixuewang.account import (login, login_id, rewrite_str, login_student, login_teacher,
                                 login_student_id, login_teacher_id, load_account)
