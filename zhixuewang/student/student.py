@@ -64,7 +64,15 @@ class StudentAccount(Account, StuPerson):
     def get_session(self):
         '''获得学生端Session'''
         return self._session
-    
+
+    def get_token(self) -> str:
+        """获取token"""
+        self.update_login_status()
+        r = self._session.get("https://www.zhixue.com/middleweb/newToken")
+        if not r.ok:
+            raise PageConnectionError(f"get_token出错 \n {r.text}")
+        return r.json()["result"]["token"]
+
     def get_auth_header(self) -> dict:
         """获取header"""
         self.update_login_status()
@@ -557,7 +565,7 @@ class StudentAccount(Account, StuPerson):
                 "completeStatus": 1 if is_complete else 0,
                 "pageSize": size,  # 取几个
                 "subjectCode": subject_code,
-                "token": self.get_auth_header()["XToken"],
+                "token": self.get_token(),
                 "createTime": create_time,  # 创建时间在多久以前的 0 为从最新开始
             },
         )
@@ -608,7 +616,7 @@ class StudentAccount(Account, StuPerson):
                 "params": {"hwId": homework.id},
             },
             headers={
-                "Authorization": self.get_auth_header()["XToken"],
+                "Authorization": self.get_token(),
             },
         )
         data = r.json()["result"]
@@ -640,7 +648,7 @@ class StudentAccount(Account, StuPerson):
                 "params": {"hwId": homework.id},
             },
             headers={
-                "Authorization": self.get_auth_header()["XToken"],
+                "Authorization": self.get_token(),
             },
         )
         data = r.json()["result"]
@@ -679,7 +687,7 @@ class StudentAccount(Account, StuPerson):
                 },
             },
             headers={
-                "Authorization": self.get_auth_header()["XToken"],
+                "Authorization": self.get_token(),
             },
         )
         data = r.json()["result"]
