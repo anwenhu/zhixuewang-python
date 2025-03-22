@@ -2,8 +2,9 @@ import hashlib
 import json
 import time
 import uuid
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 from zhixuewang.models import (
+    AcademicYear,
     Account,
     ErrorBookTopic,
     ExtendedList,
@@ -127,6 +128,54 @@ class StudentAccount(Account, StuPerson):
         )
         return self
 
+    def get_academic_year(self) -> ExtendedList[AcademicYear]:
+        """获取学年
+
+        Returns:
+            ExtendedList[Tuple[str, str]]: 学年列表
+        """
+        self.update_login_status()
+        r = self._session.get(
+            Url.GET_ACADEMIC_YEAR_URL,
+            headers=self.get_auth_header(),
+        )
+        if not r.ok:
+            raise PageConnectionError(f"get_academic_year 出错 \n {r.text}")
+        json_data = r.json()["result"]
+
+        academic_years: ExtendedList[AcademicYear] = ExtendedList()
+        for academic_year in json_data:
+            academic_years.append(
+                AcademicYear(
+                    name=academic_year["name"],
+                    code=academic_year["code"],
+                    begin_time=academic_year["beginTime"],
+                    end_time=academic_year["endTime"],
+                )
+            )
+        return academic_years
+
+    def _get_latest_valid_academic_year(self) -> AcademicYear:
+        def check_is_valid(exam: str) -> bool:
+            return exam != ""
+        academic_years = self.get_academic_year()
+        cnt = 0
+        while True:
+            start_school_year = academic_years[cnt].begin_time
+            end_school_year = academic_years[cnt].end_time
+            cnt += 1
+            r = self._session.get(
+                Url.GET_RECENT_EXAM_URL,
+                params={
+                    "startSchoolYear": start_school_year,
+                    "endSchoolYear": end_school_year,
+                },
+                headers=self.get_auth_header()
+            )
+            if check_is_valid(r.json()["result"]):
+                break
+        return academic_years[cnt - 1]
+
     def get_exam(self, exam_data: Union[Exam, str] = "") -> Exam:
         """获取考试
 
@@ -152,13 +201,18 @@ class StudentAccount(Account, StuPerson):
             exam = exams.find_by_name(exam_data)
         return exam
 
-    def get_page_exam(self, page_index: int) -> Tuple[ExtendedList[Exam], bool]:
+    def get_page_exam(self, page_index: int, acamemic_year: AcademicYear) -> Tuple[ExtendedList[Exam], bool]:
         """获取指定页数的考试列表"""
         self.update_login_status()
         exams: ExtendedList[Exam] = ExtendedList()
         r = self._session.get(
             Url.GET_EXAM_URL,
-            params={"pageIndex": page_index, "pageSize": 10},
+            params={
+                "pageIndex": page_index,
+                "pageSize": 10,
+                "startSchoolYear": acamemic_year.begin_time,
+                "endSchoolYear": acamemic_year.end_time,
+            },
             headers=self.get_auth_header(),
         )
         if not r.ok:
@@ -173,11 +227,24 @@ class StudentAccount(Account, StuPerson):
 
     def get_latest_exam(self) -> Exam:
         """获取最新考试"""
+
         self.update_login_status()
-        r = self._session.get(Url.GET_RECENT_EXAM_URL, headers=self.get_auth_header())
+        academic_year = self._get_latest_valid_academic_year()
+        start_school_year = academic_year.begin_time
+        end_school_year = academic_year.end_time
+
+        r = self._session.get(
+            Url.GET_RECENT_EXAM_URL,
+            params={
+                "startSchoolYear": start_school_year,
+                "endSchoolYear": end_school_year,
+            },
+            headers=self.get_auth_header()
+        )
         if not r.ok:
             raise PageConnectionError(f"get_latest_exam出错 \n {r.text}")
         json_data = r.json()["result"]
+
         exam_info_data = json_data["examInfo"]
 
         subjects: ExtendedList[Subject] = ExtendedList()
@@ -210,17 +277,19 @@ class StudentAccount(Account, StuPerson):
             if self.exams[0].id == latest_exam.id:
                 return self.exams
 
+        academic_years = self.get_academic_year()
         exams: ExtendedList[Exam] = ExtendedList()
-        i = 1
-        check = True
-        while check:
-            cur_exams, check = self.get_page_exam(i)
-            exams.extend(cur_exams)
-            i += 1
+        for year in academic_years:
+            i = 1
+            check = True
+            while check:
+                cur_exams, check = self.get_page_exam(i, year)
+                exams.extend(cur_exams)
+                i += 1
         self.exams = exams
         return exams
 
-    def __get_self_mark(self, exam: Exam, has_total_score: bool) -> Mark:
+    def __get_self_mark(self, exam: Exam, has_total_score: bool, academic_year: AcademicYear) -> Mark:
         self.update_login_status()
         mark = Mark(exam=exam, person=self)
         r = self._session.get(
@@ -263,25 +332,33 @@ class StudentAccount(Account, StuPerson):
                 grade_rank=exam.grade_rank,
             )
             mark.append(subject_score)
-        self._set_exam_rank(mark)
+        self._set_exam_rank(mark, academic_year)
         return mark
 
     def get_self_mark(
-            self, exam_data: Union[Exam, str] = "", has_total_score: bool = True
+            self, exam_data: Union[Exam, str] = "", has_total_score: bool = True, academic_year: Optional[AcademicYear] = None
     ) -> Mark:
         """获取指定考试的成绩
+
+        若传考试则必传学年，也可两者都不传
+        TODO: 支持仅传学年
 
         Args:
             exam_data (Union[Exam, str]): 考试id 或 考试名称 或 Exam实例, 默认值为最新考试
             has_total_score (bool): 是否计算总分, 默认为True
+            academic_year (Optional[AcademicYear]): 学年, 默认为None
 
         Returns:
             Mark
         """
+        if exam_data and (not academic_year):
+            raise ValueError("在指定考试的情况下, 应当指定学年")
         exam = self.get_exam(exam_data)
         if exam is None:
             return Mark()
-        return self.__get_self_mark(exam, has_total_score)
+        if not academic_year:
+            academic_year = self._get_latest_valid_academic_year()
+        return self.__get_self_mark(exam, has_total_score, academic_year)
 
     def __get_subjects(self, exam: Exam) -> ExtendedList[Subject]:
         self.update_login_status()
@@ -708,16 +785,39 @@ class StudentAccount(Account, StuPerson):
         else:
             return self.get_bank_answer(homework)
 
-    def _set_exam_rank(self, mark: Mark):
+    def _set_exam_rank(self, mark: Mark, academic_year: AcademicYear):
         r = self._session.get(
             Url.GET_EXAM_LEVEL_TREND_URL,
-            params={"examId": mark.exam.id, "pageIndex": 1, "pageSize": 1},
+            params={
+                "examId": mark.exam.id,
+                "pageIndex": 1,
+                "pageSize": 1,
+                "startSchoolYear": academic_year.begin_time,
+                "endSchoolYear": academic_year.end_time,
+            },
             headers=self.get_auth_header(),
         )
         data = r.json()
         if data["errorCode"] != 0:
             return
-        num = data["result"]["list"][0]["dataList"][0]["totalNum"]
+        num = -1
+        if len(data["result"]["list"]) != 0:
+            num = data["result"]["list"][0]["dataList"][0]["totalNum"]
+        else:
+            subject = self.__get_subjects(mark.exam)[0].id
+            r = self._session.get(
+                Url.GET_PAPER_LEVEL_TREND_URL,
+                params={
+                    "examId": mark.exam.id,
+                    "pageIndex": 1,
+                    "pageSize": 1,
+                    "paperId": subject,
+                    "startSchoolYear": academic_year.begin_time,
+                    "endSchoolYear": academic_year.end_time,
+                },
+                headers=self.get_auth_header(),
+            )
+            num = r.json()["result"]["list"][0]["dataList"][0]["totalNum"]
         r = self._session.get(
             Url.GET_SUBJECT_DIAGNOSIS,
             params={"examId": mark.exam.id},

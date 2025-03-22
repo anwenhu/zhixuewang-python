@@ -201,7 +201,7 @@ class TextBook:
     bindSubject: BasicSubject = field(default_factory=BasicSubject)
     def __str__(self) -> str:
         return f"{self.bindSubject.name} {self.name} ({self.version})"
-        
+
 
 @dataclass(eq=False)
 class Exam:
@@ -362,3 +362,12 @@ class ErrorBookTopic:
     topic_source_paper_name: str
     image_answer: List[str]  # 你的答案
     topic_analysis_img_url: str
+
+@dataclass
+class AcademicYear:
+    """学年"""
+
+    name: str
+    code: str
+    begin_time: str
+    end_time: str
