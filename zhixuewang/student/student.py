@@ -64,7 +64,7 @@ class StudentAccount(Account, StuPerson):
     def get_session(self):
         '''获得学生端Session'''
         return self._session
-    
+
     def get_auth_header(self) -> dict:
         """获取header"""
         self.update_login_status()
@@ -738,7 +738,7 @@ class StudentAccount(Account, StuPerson):
             headers=self.get_auth_header(),
         )
         data = r.json()
-        if data["errorCode"] != 0: 
+        if data["errorCode"] != 0:
             # {'errorCode': 40217, 'errorInfo': '暂时未收集到试题信息,无法查看', 'result': ''}
             raise Exception(data)
         result = []
