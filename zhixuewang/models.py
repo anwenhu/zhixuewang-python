@@ -11,7 +11,7 @@ from zhixuewang.urls import Url
 
 
 class Role(Enum):
-    student = (0,)
+    student = 0
     teacher = 1
 
 
