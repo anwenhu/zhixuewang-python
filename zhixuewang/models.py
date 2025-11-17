@@ -1,13 +1,11 @@
 import base64
-from enum import Enum
 import os
-import pickle
-from typing import List, Callable, Union, TypeVar
-from datetime import datetime
 from dataclasses import dataclass, field
-from zhixuewang.session import get_basic_session, get_session
-from zhixuewang.tools.datetime_tool import get_property
-from zhixuewang.urls import Url
+from datetime import datetime
+from enum import Enum
+from typing import Callable, List, TypeVar, Union
+
+from zhixuewang.session import get_basic_session
 
 
 class Role(Enum):
@@ -15,38 +13,11 @@ class Role(Enum):
     teacher = 1
 
 
-@dataclass
-class AccountData:
-    username: str
-    encoded_password: str
-    role: Role
-
-
 class Account:
     def __init__(self, session, role: Role) -> None:
         self._session = session
         self.role = role
         self.username = base64.b64decode(session.cookies["uname"].encode()).decode()
-
-    def save_account(self, path: str = "user.data"):
-        with open(path, "wb") as f:
-            password = base64.b64decode(self._session.cookies["pwd"].encode()).decode()
-            data = pickle.dumps(
-                AccountData(
-                    self.username, password, self.role
-                )
-            )
-            f.write(base64.b64encode(data))
-
-    def update_login_status(self):
-        """更新登录状态. 如果session过期自动重新获取"""
-        r = self._session.get(Url.GET_LOGIN_STATE)
-        data = r.json()
-        if data["result"] == "success":
-            return
-        # session过期
-        password = base64.b64decode(self._session.cookies["pwd"].encode()).decode()
-        self._session = get_session(self.username, password)
 
 
 T = TypeVar("T")
@@ -91,6 +62,16 @@ class ExtendedList(List[T]):
         """返回列表里所有特定id的元素"""
         return self.find_all(lambda d: d.id == spec_id)
 
+
+
+@dataclass
+class AcademicYear:
+    """学年"""
+
+    name: str = ""
+    code: str = ""
+    begin_time: str = ""
+    end_time: str = ""
 
 @dataclass
 class Grade:
@@ -217,6 +198,7 @@ class Exam:
     create_time: float = field(default=0, repr=False)
     class_rank: int = field(default=0, repr=False)
     grade_rank: int = field(default=0, repr=False)
+    academic_year: AcademicYear = field(default_factory=AcademicYear, repr=False)
     is_final: bool = False
 
     def __bool__(self):
@@ -362,12 +344,3 @@ class ErrorBookTopic:
     topic_source_paper_name: str
     image_answer: List[str]  # 你的答案
     topic_analysis_img_url: str
-
-@dataclass
-class AcademicYear:
-    """学年"""
-
-    name: str
-    code: str
-    begin_time: str
-    end_time: str

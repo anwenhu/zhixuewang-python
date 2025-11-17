@@ -1,52 +1,34 @@
+import asyncio
 import base64
-import pickle
 
-from zhixuewang.exceptions import RoleError
-from zhixuewang.models import Account, AccountData, Role
-from zhixuewang.session import check_is_student, get_session, get_session_id, get_basic_session
+import requests
+from playwright.async_api import Playwright, async_playwright
+
+from zhixuewang.models import Account
+from zhixuewang.session import get_basic_session
 from zhixuewang.student.student import StudentAccount
 from zhixuewang.teacher.teacher import TeacherAccount
-import asyncio
-from playwright.async_api import async_playwright, Playwright
 
 
-def load_account(path: str = "user.data") -> Account:
-    with open(path, "rb") as f:
-        data = base64.b64decode(f.read())
-        account_data: AccountData = pickle.loads(data)
-        session = get_session(account_data.username, account_data.encoded_password)
-        if account_data.role == Role.student:
-            return StudentAccount(session).set_base_info()
-        elif account_data.role == Role.teacher:
-            return TeacherAccount(session).set_base_info()
-        else:
-            raise RoleError()
-
-
-def login_student_id(user_id: str, password: str) -> StudentAccount:
-    """通过用户id和密码登录学生账号
+def check_is_student(s: requests.Session) -> bool:
+    """判断用户是否为学生
 
     Args:
-        user_id (str): 用户id
-        password (str): 密码(包括加密后的密码)
-
-    Raises:
-        UserOrPassError: 用户名或密码错误
-        UserNotFoundError: 未找到用户
-        LoginError: 登录错误
+        s (requests.session): session
 
     Returns:
-        StudentAccount
+        bool:
     """
-    session = get_session_id(user_id, password)
-    student = StudentAccount(session)
-    return student.set_base_info()
+    url = s.get("https://www.zhixue.com/container/container/index/").url
+    return "student" in url
 
-def login_cookie(cookies: dict) -> Account:
+
+
+def login_cookie(cookies: dict | str) -> Account:
     """通过cookie登录账号
 
     Args:
-        cookie (dict): 用户cookie
+        cookie (dict|str): 用户cookie
 
     Returns:
         Person
@@ -54,6 +36,8 @@ def login_cookie(cookies: dict) -> Account:
     session = get_basic_session()
 
     # 更新会话的cookie
+    if isinstance(cookies, str):
+        cookies = dict(item.split("=") for item in cookies.split("; "))
     session.cookies.update(cookies)
     session.cookies.set("uname", base64.b64encode(cookies["loginUserName"].encode()).decode())
 
@@ -77,7 +61,6 @@ async def playwright_get_cookie(playwright: Playwright, username, password):
     await page.click('#signup_button')
     await page.wait_for_url("https://www.zhixue.com/htm-vessel/**", timeout=float('inf'))
     cookies = await page.context.cookies()
-    # print("Cookies:", cookies)
     # 将Cookie转换为字典
     cookies_dict = {cookie['name']: cookie['value'] for cookie in cookies}
     await browser.close()
@@ -90,13 +73,13 @@ async def playwright_process(username: str, password: str):
 def login_playwright(username: str, password: str)  -> Account:
     """通过playwright更加便利的登录账号
 
-            Args:
-                username (str): 用户名, 可以为准考证号, 手机号
-                password (str): 密码
+    Args:
+        username (str): 用户名, 可以为准考证号, 手机号
+        password (str): 密码
 
-            Returns:
-                Person
-            """
+    Returns:
+        Person
+    """
     session = get_basic_session()
 
     # 更新会话的cookie
@@ -107,112 +90,6 @@ def login_playwright(username: str, password: str)  -> Account:
     if check_is_student(session):
         return StudentAccount(session).set_base_info()
     return TeacherAccount(session).set_base_info().set_advanced_info()
-
-
-def login_student(username: str, password: str) -> StudentAccount:
-    """通过用户名和密码登录学生账号
-
-    Args:
-        username (str): 用户名, 可以为准考证号, 手机号
-        password (str): 密码(包括加密后的密码)
-
-    Raises:
-        UserOrPassError: 用户名或密码错误
-        UserNotFoundError: 未找到用户
-        LoginError: 登录错误
-
-    Returns:
-        StudentAccount
-    """
-    session = get_session(username, password)
-    student = StudentAccount(session)
-    return student.set_base_info()
-
-
-def login_teacher_id(user_id: str, password: str) -> TeacherAccount:
-    """通过用户id和密码登录老师账号
-
-    Args:
-        user_id (str): 用户id
-        password (str): 密码(包括加密后的密码)
-
-    Raises:
-        UserOrPassError: 用户名或密码错误
-        UserNotFoundError: 未找到用户
-        LoginError: 登录错误
-
-    Returns:
-        TeacherAccount
-    """
-    session = get_session_id(user_id, password)
-    teacher = TeacherAccount(session)
-    return teacher.set_base_info().set_advanced_info()
-
-
-def login_teacher(username: str, password: str) -> TeacherAccount:
-    """通过用户名和密码登录老师账号
-
-    Args:
-        username (str): 用户名, 可以为准考证号, 手机号
-        password (str): 密码(包括加密后的密码)
-
-    Raises:
-        UserOrPassError: 用户名或密码错误
-        UserNotFoundError: 未找到用户
-        LoginError: 登录错误
-
-    Returns:
-        TeacherAccount
-    """
-    session = get_session(username, password)
-    teacher = TeacherAccount(session)
-    return teacher.set_base_info().set_advanced_info()
-
-
-def login_id(user_id: str, password: str) -> Account:
-    """通过用户id和密码登录智学网
-
-    Args:
-        user_id (str): 用户id
-        password (str): 密码(包括加密后的密码)
-
-    Raises:
-        UserOrPassError: 用户名或密码错误
-        UserNotFoundError: 未找到用户
-        LoginError: 登录错误
-        RoleError: 账号角色未知
-
-    Returns:
-        Person
-    """
-    session = get_session_id(user_id, password)
-    if check_is_student(session):
-        return StudentAccount(session).set_base_info()
-    return TeacherAccount(session).set_base_info()
-
-
-def login(username: str, password: str) -> Account:
-    """通过用户名和密码登录智学网
-
-    Args:
-        username (str): 用户名, 可以为准考证号, 手机号
-        password (str): 密码(包括加密后的密码)
-
-    Raises:
-        ArgError: 参数错误
-        UserOrPassError: 用户名或密码错误
-        UserNotFoundError: 未找到用户
-        LoginError: 登录错误
-        RoleError: 账号角色未知
-
-    Returns:
-        Person
-    """
-    session = get_session(username, password)
-    if check_is_student(session):
-        return StudentAccount(session).set_base_info()
-    return TeacherAccount(session).set_base_info().set_advanced_info()
-
 
 def rewrite_str(model):
     """重写类的__str__方法

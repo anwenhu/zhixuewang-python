@@ -2,37 +2,38 @@ import hashlib
 import json
 import time
 import uuid
-from typing import List, Optional, Tuple, Union
+from datetime import datetime
+from typing import List, Tuple, Union
+
+from zhixuewang.exceptions import (
+    PageConnectionError,
+    UserDefunctError,
+)
 from zhixuewang.models import (
     AcademicYear,
     Account,
+    AnswerRecord,
     ErrorBookTopic,
-    ExtendedList,
     Exam,
+    ExtendedList,
+    Grade,
+    HwAnswer,
     HwResource,
     HwType,
-    HwAnswer,
     Mark,
     MarkingRecord,
-    SubTopicRecord,
-    TopicRecord,
-    AnswerRecord,
     Role,
-    StuHomework,
-    Subject,
-    SubjectScore,
-    StuClass,
     School,
     Sex,
-    Grade,
-    StuPerson
-)
-from zhixuewang.exceptions import (
-    UserDefunctError,
-    PageConnectionError,
+    StuClass,
+    StuHomework,
+    StuPerson,
+    Subject,
+    SubjectScore,
+    SubTopicRecord,
+    TopicRecord,
 )
 from zhixuewang.student.urls import Url
-from datetime import datetime
 
 
 def _check_is_uuid(msg: str):
@@ -48,7 +49,6 @@ def _md5_encode(msg: str) -> str:
     md5 = hashlib.md5()
     md5.update(msg.encode(encoding="utf-8"))
     return md5.hexdigest()
-
 
 class StudentAccount(Account, StuPerson):
     """学生账号"""
@@ -68,7 +68,6 @@ class StudentAccount(Account, StuPerson):
 
     def get_auth_header(self) -> dict:
         """获取header"""
-        self.update_login_status()
         auth_guid = str(uuid.uuid4())
         auth_time_stamp = str(int(time.time() * 1000))
         auth_token = _md5_encode(auth_guid + auth_time_stamp + "iflytek!@#123student")
@@ -98,7 +97,6 @@ class StudentAccount(Account, StuPerson):
 
     def set_base_info(self):
         """设置账户基本信息, 如用户id, 姓名, 学校等"""
-        self.update_login_status()
         r = self._session.get(Url.INFO_URL)
         if not r.ok:
             raise PageConnectionError(f"set_base_info出错 \n {r.text}")
@@ -134,7 +132,6 @@ class StudentAccount(Account, StuPerson):
         Returns:
             ExtendedList[Tuple[str, str]]: 学年列表
         """
-        self.update_login_status()
         r = self._session.get(
             Url.GET_ACADEMIC_YEAR_URL,
             headers=self.get_auth_header(),
@@ -203,7 +200,6 @@ class StudentAccount(Account, StuPerson):
 
     def get_page_exam(self, page_index: int, acamemic_year: AcademicYear) -> Tuple[ExtendedList[Exam], bool]:
         """获取指定页数的考试列表"""
-        self.update_login_status()
         exams: ExtendedList[Exam] = ExtendedList()
         r = self._session.get(
             Url.GET_EXAM_URL,
@@ -221,6 +217,7 @@ class StudentAccount(Account, StuPerson):
         for exam_data in json_data["examList"]:
             exam = Exam(id=exam_data["examId"], name=exam_data["examName"])
             exam.create_time = exam_data["examCreateDateTime"]
+            exam.academic_year = acamemic_year
             exams.append(exam)
         has_next_page: bool = json_data["hasNextPage"]
         return exams, has_next_page
@@ -228,7 +225,6 @@ class StudentAccount(Account, StuPerson):
     def get_latest_exam(self) -> Exam:
         """获取最新考试"""
 
-        self.update_login_status()
         academic_year = self._get_latest_valid_academic_year()
         start_school_year = academic_year.begin_time
         end_school_year = academic_year.end_time
@@ -289,8 +285,7 @@ class StudentAccount(Account, StuPerson):
         self.exams = exams
         return exams
 
-    def __get_self_mark(self, exam: Exam, has_total_score: bool, academic_year: AcademicYear) -> Mark:
-        self.update_login_status()
+    def __get_self_mark(self, exam: Exam, has_total_score: bool) -> Mark:
         mark = Mark(exam=exam, person=self)
         r = self._session.get(
             Url.GET_MARK_URL,
@@ -332,17 +327,12 @@ class StudentAccount(Account, StuPerson):
                 grade_rank=exam.grade_rank,
             )
             mark.append(subject_score)
-        self._set_exam_rank(mark, academic_year)
+        self._set_exam_rank(mark)
         return mark
 
     def get_self_mark(
-            self, exam_data: Union[Exam, str] = "", has_total_score: bool = True, academic_year: Optional[AcademicYear] = None
-    ) -> Mark:
+            self, exam_data: Union[Exam, str] = "", has_total_score: bool = True) -> Mark:
         """获取指定考试的成绩
-
-        若传考试则必传学年，也可两者都不传
-        TODO: 支持仅传学年
-
         Args:
             exam_data (Union[Exam, str]): 考试id 或 考试名称 或 Exam实例, 默认值为最新考试
             has_total_score (bool): 是否计算总分, 默认为True
@@ -351,17 +341,12 @@ class StudentAccount(Account, StuPerson):
         Returns:
             Mark
         """
-        if exam_data and (not academic_year):
-            raise ValueError("在指定考试的情况下, 应当指定学年")
         exam = self.get_exam(exam_data)
         if exam is None:
             return Mark()
-        if not academic_year:
-            academic_year = self._get_latest_valid_academic_year()
-        return self.__get_self_mark(exam, has_total_score, academic_year)
+        return self.__get_self_mark(exam, has_total_score)
 
     def __get_subjects(self, exam: Exam) -> ExtendedList[Subject]:
-        self.update_login_status()
         subjects: ExtendedList[Subject] = ExtendedList()
         r = self._session.get(
             Url.GET_SUBJECT_URL,
@@ -398,7 +383,6 @@ class StudentAccount(Account, StuPerson):
         return self.__get_subjects(exam)
 
     def __get_subject(self, exam: Exam, subject_data: str):
-        self.update_login_status()
         subjects = self.get_subjects(exam)
         if _check_is_uuid(subject_data):  # 判断为id还是名称
             subject = subjects.find_by_id(subject_data)  # 为id
@@ -427,7 +411,6 @@ class StudentAccount(Account, StuPerson):
         return subject if subject is not None else Subject()
 
     def __get_original(self, topic_set_id: str, exam_id: str) -> List[str]:
-        self.update_login_status()
         r = self._session.get(
             Url.GET_ORIGINAL_URL,
             params={
@@ -467,7 +450,6 @@ class StudentAccount(Account, StuPerson):
         return self.__get_original(subject.id, exam.id)
 
     def __get_answer_records(self, topic_set_id: str, exam_id: str):
-        self.update_login_status()
         r = self._session.get(
             Url.GET_ORIGINAL_URL,
             params={
@@ -564,7 +546,6 @@ class StudentAccount(Account, StuPerson):
         return clazz
 
     def __get_classmates(self, clazz_id: str) -> ExtendedList[StuPerson]:
-        self.update_login_status()
         classmates = ExtendedList()
         r = self._session.get(
             Url.GET_CLASSMATES_URL,
@@ -626,7 +607,6 @@ class StudentAccount(Account, StuPerson):
         Returns:
             ExtendedList[StuHomework]: 作业(不包含作业资源)
         """
-        self.update_login_status()
         r = self._session.get(
             Url.GET_HOMEWORK_URL,
             params={
@@ -667,7 +647,6 @@ class StudentAccount(Account, StuPerson):
         Returns:
             List[HwResource]: 作业资源
         """
-        self.update_login_status()
         if homework.type.code == 102:
             return []
         r = self._session.post(
@@ -701,7 +680,6 @@ class StudentAccount(Account, StuPerson):
         Returns:
             List[HwAnswer]: 作业答案
         """
-        self.update_login_status()
         r = self._session.post(
             Url.GET_HOMEWORK_EXERCISE_URL,
             json={
@@ -737,7 +715,6 @@ class StudentAccount(Account, StuPerson):
         Returns:
             List[HwAnswer]: 作业答案
         """
-        self.update_login_status()
         r = self._session.post(
             Url.GET_HOMEWORK_BANK_URL,
             json={
@@ -777,7 +754,6 @@ class StudentAccount(Account, StuPerson):
         Returns:
             List[HwBankAnswer]: 作业答案
         """
-        self.update_login_status()
         if homework.type.code != 105 and homework.type.code != 102:
             return []
         if homework.type.code == 105:
@@ -785,15 +761,15 @@ class StudentAccount(Account, StuPerson):
         else:
             return self.get_bank_answer(homework)
 
-    def _set_exam_rank(self, mark: Mark, academic_year: AcademicYear):
+    def _set_exam_rank(self, mark: Mark):
         r = self._session.get(
             Url.GET_EXAM_LEVEL_TREND_URL,
             params={
                 "examId": mark.exam.id,
                 "pageIndex": 1,
                 "pageSize": 1,
-                "startSchoolYear": academic_year.begin_time,
-                "endSchoolYear": academic_year.end_time,
+                "startSchoolYear": mark.exam.academic_year.begin_time,
+                "endSchoolYear": mark.exam.academic_year.end_time,
             },
             headers=self.get_auth_header(),
         )
@@ -812,8 +788,8 @@ class StudentAccount(Account, StuPerson):
                     "pageIndex": 1,
                     "pageSize": 1,
                     "paperId": subject,
-                    "startSchoolYear": academic_year.begin_time,
-                    "endSchoolYear": academic_year.end_time,
+                    "startSchoolYear": mark.exam.academic_year.begin_time,
+                    "endSchoolYear": mark.exam.academic_year.end_time,
                 },
                 headers=self.get_auth_header(),
             )
