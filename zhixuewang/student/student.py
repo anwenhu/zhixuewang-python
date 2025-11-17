@@ -817,7 +817,23 @@ class StudentAccount(Account, StuPerson):
                 },
                 headers=self.get_auth_header(),
             )
-            num = r.json()["result"]["list"][0]["dataList"][0]["totalNum"]
+            try:
+                resp_data = r.json()
+                if not isinstance(resp_data, dict):
+                    raise TypeError("接口返回数据不是字典")
+                result = resp_data.get("result", {})
+                list_data = result.get("list", [])
+                if not list_data:
+                    num = 0
+                else:
+                    data_list = list_data[0].get("dataList", [])
+                    if not data_list:
+                        num = 0
+                    else:
+                        num = data_list[0].get("totalNum", 0)
+            except Exception as e:
+                print(f"解析 totalNum 失败: {e}，返回默认值 0")
+                num = 0
         r = self._session.get(
             Url.GET_SUBJECT_DIAGNOSIS,
             params={"examId": mark.exam.id},
