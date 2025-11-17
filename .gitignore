@@ -39,3 +39,7 @@ coverage.xml
 user
 test*
 venv/
+
+*.toml
+.python-version
+uv.lock

@@ -14,7 +14,7 @@ pip install zhixuewang
 ```bash
 git clone https://github.com/anwenhu/zhixuewang
 cd zhixuewang
-python setup.py install
+pip install .
 ```
 
 
