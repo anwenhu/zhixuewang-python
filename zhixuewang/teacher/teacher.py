@@ -1,17 +1,17 @@
-from typing import List, Tuple
+from typing import List
+
 from zhixuewang.models import (
     Account,
     Exam,
     ExtendedList,
+    Grade,
     Role,
     School,
     StuClass,
     Subject,
-    Grade,
     TextBook,
-    StuPerson,
 )
-from zhixuewang.teacher.models import MarkingProgress, PageExam, TeaPerson, AcademicInfo
+from zhixuewang.teacher.models import AcademicInfo, MarkingProgress, PageExam, TeaPerson
 from zhixuewang.teacher.urls import Url
 
 
@@ -96,7 +96,6 @@ class TeacherAccount(Account, TeaPerson):
     def get_school_exam_classes(
         self, school_id: str, topic_set_id: str
     ) -> List[StuClass]:
-        self.update_login_status()
         r = self._session.get(
             Url.GET_EXAM_SCHOOLS_URL,
             params={"schoolId": school_id, "markingPaperId": topic_set_id},
@@ -171,7 +170,6 @@ class TeacherAccount(Account, TeaPerson):
         Return:
             bool: 正常会返回True
         """
-        self.update_login_status()
         r = self._session.get(Url.GET_EXAM_SUBJECTS_URL, params={"examId": exam_id})
         data = r.json()["result"]
         subjects = []
@@ -197,7 +195,6 @@ class TeacherAccount(Account, TeaPerson):
         Return:
             Exam
         """
-        self.update_login_status()
         r = self._session.post(Url.GET_EXAM_DETAIL_URL, data={"examId": exam_id})
         data = r.json()["result"]
         exam = Exam()

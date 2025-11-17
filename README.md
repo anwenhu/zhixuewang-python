@@ -37,16 +37,8 @@ print(zxw.get_self_mark())
 ### 你也可以手动获取cookie登录
 #### python代码
 ```python
-# from zhixuewang import login_cookie
 from zhixuewang.account import login_cookie
 
-# zxw = login(您的智学网账号, 您的智学网密码)
-# 因为智学网接口变动暂时失效，请先使用cookie登录方式
-# 复制的cookie字符串
-cookie_string = "xxx"
-
-# 将cookie字符串转换为字典
-cookies = dict(item.split("=") for item in cookie_string.split("; "))
 zxw = login_cookie(cookies)
 
 print(zxw.get_self_mark())
