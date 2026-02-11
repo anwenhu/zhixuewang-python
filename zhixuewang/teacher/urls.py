@@ -15,7 +15,7 @@ class Url:
     GET_MARKING_PROGRESS_URL = "https://pt-ali-bj-re.zhixue.com/marking/marking/markingTopicProgress/"
 
     GET_EXAMS_URL = f"{BASE_URL}/api-classreport/class/classReportList/"
-    GET_EXAM_DETAIL_URL = f"{BASE_URL}/scanmuster/cloudRec/scanrecognition"
+    GET_EXAM_DETAIL_URL = f"{BASE_URL}/api-classreport/class/examInfo/"
 
     GET_EXAM_SCHOOLS_URL = f"{BASE_URL}/exam/marking/schoolClass"
     GET_EXAM_SUBJECTS_URL = f"{BASE_URL}/configure/class/getSubjectsIncludeSubAndGroup"

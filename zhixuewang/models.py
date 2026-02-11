@@ -13,6 +13,7 @@ from zhixuewang.session import get_basic_session
 from zhixuewang.urls import Url
 
 if TYPE_CHECKING:
+    from zhixuewang.parent.parent import ParentAccount
     from zhixuewang.student.student import StudentAccount
     from zhixuewang.teacher.teacher import TeacherAccount
 
@@ -20,10 +21,10 @@ if TYPE_CHECKING:
 class Role(Enum):
     student = 0
     teacher = 1
+    parent = 2
 
 
 class Account:
-    id: str
     def __init__(self, session: Session, role: Role) -> None:
         self._session = session
         self.role = role
@@ -37,6 +38,9 @@ class Account:
     
     def to_teacher(self) -> "TeacherAccount":
         raise NotImplementedError("账号无法转换为教师账号")
+    
+    def to_parent(self) -> "ParentAccount":
+        raise NotImplementedError("账号无法转换为家长账号")
     
     def get_personal_messages(
         self, 
@@ -52,7 +56,6 @@ class Account:
         """
         import time
         timestamp = int(time.time() * 1000)
-        
         r = self._session.get(
             Url.GET_PERSONAL_MESSAGES,
             params={
@@ -63,7 +66,6 @@ class Account:
                 "_": timestamp - 300
             }
         )
-        
         data = r.json()
         
         # 解析消息列表
@@ -145,7 +147,6 @@ class Account:
         r = self._session.post(
             f"{Url.SEND_PERSONAL_MESSAGE}?_t={int(time.time() * 1000)}",
             data={
-                "senderId": self.id,
                 "receiverId": receiver_id,
                 "content": content,
                 "type": "personalMsg"
@@ -292,7 +293,6 @@ class Subject(BasicSubject):
 
     id: str = ""
     standard_score: float = 0
-    status: str = field(default="", repr=False)
     exam_id: str = field(default="", repr=False)
     create_user: Person = field(default_factory=Person, repr=False)
     create_time: float = field(default=0, repr=False)
@@ -325,8 +325,9 @@ class Exam:
     name: str = ""
     status: str = ""
     grade_code: str = ""
-    subjects: ExtendedList[Subject] = field(default_factory=ExtendedList[Subject], repr=False)
-    schools: ExtendedList[School] = field(default_factory=ExtendedList[School], repr=False)
+    subjects: ExtendedList[Subject] = field(default_factory=ExtendedList[Subject], repr=False)  # 总考试科目(不同班级实际考试科目可能只有部分)
+    clazzs: ExtendedList[StuClass] = field(default_factory=ExtendedList[StuClass], repr=False)  # 参考班级
+    schools: ExtendedList[School] = field(default_factory=ExtendedList[School], repr=False)     # 参考学校
     create_user: Person = field(default_factory=Person, repr=False)
     create_time: float = field(default=0, repr=False)
     class_rank: int = field(default=0, repr=False)
@@ -390,7 +391,6 @@ class MarkingRecord:
 
     time: datetime
     score: float
-    teacher_name: str
 
 
 @dataclass

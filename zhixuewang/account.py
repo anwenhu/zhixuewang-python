@@ -6,24 +6,35 @@ import requests
 from playwright.async_api import Playwright, async_playwright
 
 from zhixuewang.models import Account
+from zhixuewang.parent.parent import ParentAccount
 from zhixuewang.session import get_basic_session
 from zhixuewang.student.student import StudentAccount
 from zhixuewang.teacher.teacher import TeacherAccount
 
 
-def check_is_student(s: requests.Session) -> bool:
-    """判断用户是否为学生
+def get_account_role(s: requests.Session) -> str:
+    r = s.get("https://www.zhixue.com/container/getCurrentUser")
+    data = r.json()
+    return data["result"]["role"]
+
+def session_to_account(session: requests.Session) -> Account:
+    """通过session获取账号对象
 
     Args:
-        s (requests.session): session
+        session (requests.Session): 用户session
 
     Returns:
-        bool:
+        Account
     """
-    url = s.get("https://www.zhixue.com/container/container/index/").url
-    return "student" in url
-
-
+    role = get_account_role(session)
+    if role == "student":
+        return StudentAccount(session).set_base_info()
+    elif role == "teacher":
+        return TeacherAccount(session).set_base_info().set_advanced_info()
+    elif role == "parent":
+        return ParentAccount(session)
+    else:
+        return TeacherAccount(session).set_base_info().set_advanced_info()
 
 def login_cookie(cookies: Union[dict, str]) -> Account:
     """通过cookie登录账号
@@ -32,7 +43,7 @@ def login_cookie(cookies: Union[dict, str]) -> Account:
         cookies (Union[dict, str]): 用户cookie
 
     Returns:
-        Person
+        Account
     """
     session = get_basic_session()
 
@@ -42,9 +53,7 @@ def login_cookie(cookies: Union[dict, str]) -> Account:
     session.cookies.update(cookies)
     session.cookies.set("uname", base64.b64encode(cookies["loginUserName"].encode()).decode())
 
-    if check_is_student(session):
-        return StudentAccount(session).set_base_info()
-    return TeacherAccount(session).set_base_info().set_advanced_info()
+    return session_to_account(session)
 
 async def playwright_get_cookie(playwright: Playwright, username: str, password: str) -> dict:
     chromium = playwright.chromium
@@ -79,7 +88,7 @@ def login_playwright(username: str, password: str)  -> Account:
         password (str): 密码
 
     Returns:
-        Person
+        Account
     """
     session = get_basic_session()
 
@@ -88,9 +97,7 @@ def login_playwright(username: str, password: str)  -> Account:
     session.cookies.update(cookies)
     session.cookies.set("uname", base64.b64encode(cookies["loginUserName"].encode()).decode())
 
-    if check_is_student(session):
-        return StudentAccount(session).set_base_info()
-    return TeacherAccount(session).set_base_info().set_advanced_info()
+    return session_to_account(session)
 
 def rewrite_str(model):
     """重写类的__str__方法
