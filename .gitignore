@@ -40,6 +40,5 @@ user
 test*
 venv/
 
-*.toml
 .python-version
 uv.lock

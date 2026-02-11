@@ -393,7 +393,7 @@ class TeacherAccount(Account, TeaPerson):
         subjects.sort(key=lambda x: x.code, reverse=False)
         return subjects
 
-    def get_exam_detail(self, exam_id: str) -> Exam:
+    def get_exam_detail(self, exam_id: str) -> Optional[Exam]:
         """
         获取某个考试的详细情况, 包括考试科目, 参考班级等信息
         注意: 该接口不完全获取到考试科目的满分
@@ -401,12 +401,13 @@ class TeacherAccount(Account, TeaPerson):
         Args:
             exam_id (str): 为需要查询考试的id
         Return:
-            Exam
+            Optional[Exam]: 考试详细信息, 若考试不存在则返回None
         """
         r = self._session.post(Url.GET_EXAM_DETAIL_URL, data={"examId": exam_id})
-        with open("exam_detail.json", "w+", encoding="utf-8") as f:
-            f.write(json.dumps(r.json(), ensure_ascii=False, indent=4))
-        data = r.json()["result"][0]  # TODO: 目前不考虑考试报告的情况
+        data = r.json()
+        if len(data["result"]) == 0:
+            return None
+        data = data["result"][0]  # TODO: 目前不考虑考试报告的情况
         exam = Exam(id=exam_id, name=data["examName"])
         subject_map: dict[str, Subject] = {}
         for each in data["classList"]:
