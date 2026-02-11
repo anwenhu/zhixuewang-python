@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-version = "1.4.0"
+version = "1.5.1"
 setup(
     name="zhixuewang",
     version=version,

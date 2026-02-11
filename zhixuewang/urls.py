@@ -7,3 +7,6 @@ class Url:
     TEST_PASSWORD_URL = f"{BASE_URL}/weakPwdLogin/?from=web_login"
     TEST_URL = f"{BASE_URL}/container/container/teacher/teacherAccountNew"
     GET_LOGIN_STATE = f"{BASE_URL}/loginState/"
+    
+    GET_PERSONAL_MESSAGES = f"{BASE_URL}/container/personal/getPersonalMessage/"
+    SEND_PERSONAL_MESSAGE = f"{BASE_URL}/container/personal/sendPersonalMsg/"

@@ -1,0 +1,27 @@
+[project]
+name = "zhixuewang"
+version = "1.5.1"
+description = "智学网的api"
+readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["智学网", "zhixue", "zhixuewang"]
+authors = [
+    {name = 'anwenhu', email = 'anemailpocket@163.com' },
+    {name = 'MasterYuan418'},
+    {name = 'immoses648'},
+    {name = 'krn1pnc'},
+    {name = 'Haorwen'},
+    {name = 'amakerlife'}
+]
+license = "MIT"
+dependencies = [
+    "playwright>=1.35.0",
+    "requests>=2.31.0",
+    "setuptools>=68.0.0",
+    "typing-extensions>=4.7.1",
+]
+
+[dependency-groups]
+dev = [
+    "twine>=4.0.2",
+]

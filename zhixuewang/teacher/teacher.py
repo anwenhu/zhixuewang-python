@@ -1,7 +1,10 @@
-from typing import List
+import json
+import re
+from typing import Dict, List, Optional
 
 from zhixuewang.models import (
     Account,
+    BasicSubject,
     Exam,
     ExtendedList,
     Grade,
@@ -11,27 +14,55 @@ from zhixuewang.models import (
     Subject,
     TextBook,
 )
-from zhixuewang.teacher.models import AcademicInfo, MarkingProgress, PageExam, TeaPerson
+from zhixuewang.teacher.models import (
+    AcademicInfo,
+    AnswerRecordDetail,
+    MarkingProgress,
+    OriginalPaper,
+    PageExam,
+    Phase,
+    PhaseSubjectGrade,
+    Region,
+    SubTopicDetail,
+    TeacherMarkingRecord,
+    TeacherRole,
+    TeaPerson,
+)
 from zhixuewang.teacher.urls import Url
 
 
 class TeacherAccount(Account, TeaPerson):
     """老师账号"""
 
-    teaching_classes: list = []
-    province: str = None
-    city: str = None
-    subject: Subject = None
-    teaching_grade: Grade = None
-    teaching_textbook: TextBook = None
-    school: School = None
+    
 
     def __init__(self, session):
         super().__init__(session, Role.teacher)
-        self.roles = None
         self._token = None
+        
+        self.teaching_classes: List[StuClass] = []
+        """教学班级列表"""
+        self.school: Optional[School] = None
+        """所在学校"""
+        self.cur_phase: Optional[Phase] = None
+        """当前学段"""
+        self.cur_subject: Optional[BasicSubject] = None
+        """当前学科"""
+        self.book_version: Optional[str] = None
+        """书籍版本"""
+        self.textbook_version: Optional[TextBook] = None
+        """教科书版本"""
+        self.phase_subjects_grades: List[PhaseSubjectGrade] = []
+        """学段-学科-年级信息"""
+        self.cur_teaching_grades: List[Grade] = []
+        """当前教学年级"""
+    
+    def to_teacher(self) -> "TeacherAccount":
+        """将Account转换为TeacherAccount"""
+        return self
 
     def set_advanced_info(self):
+        """设置教师详细信息"""
         r = self._session.get(
             Url.GET_ADVANCED_INFORMATION_URL,
             headers={
@@ -41,42 +72,129 @@ class TeacherAccount(Account, TeaPerson):
         if r.status_code != 200:
             return self
         data = r.json()["result"]
-        self.province = data["province"]["name"] if data["province"] else None
-        self.city = data["city"]["name"] if data["city"] else None
-        if data["school"]:
+        
+        # 基本信息
+        self.id = data.get("id", "")
+        self.login_name = data.get("loginName", "")
+        self.name = data.get("name", "")
+        self.mobile = data.get("mobile", "")
+        
+        # 角色信息
+        if "roles" in data:
+            self.roles = []
+            for role_data in data["roles"]:
+                self.roles.append(TeacherRole.from_zxw(role_data["eName"]))
+        
+        # 地区信息
+        if data.get("province"):
+            self.province = Region(
+                code=data["province"].get("code", ""),
+                name=data["province"].get("name", ""),
+                level=data["province"].get("level"),
+                id=data["province"].get("id", "")
+            )
+        if data.get("city"):
+            self.city = Region(
+                code=data["city"].get("code", ""),
+                name=data["city"].get("name", ""),
+                level=data["city"].get("level"),
+                id=data["city"].get("id", "")
+            )
+        if data.get("distinct"):
+            self.district = Region(
+                code=data["distinct"].get("code", ""),
+                name=data["distinct"].get("name", ""),
+                level=data["distinct"].get("level"),
+                id=data["distinct"].get("id", "")
+            )
+        
+        # 学校信息
+        if data.get("school"):
             self.school = School(
-                name=data["school"]["name"], id=data["school"]["id"]
+                id=data["school"].get("id", ""),
+                name=data["school"].get("name", "")
             )
-        if data["curSubject"]:
-            self.subject = Subject(
-                data["curSubject"]["name"], code=data["curSubject"]["code"]
+        
+        # 当前学段
+        if data.get("curPhase"):
+            self.cur_phase = Phase(
+                code=data["curPhase"].get("code", ""),
+                name=data["curPhase"].get("name", "")
             )
-        if data["grade"]:
-            self.teaching_grade = Grade(
-                data["grade"]["name"], code=data["grade"]["code"]
+        
+        # 当前学科
+        if data.get("curSubject"):
+            self.cur_subject = BasicSubject(
+                code=data["curSubject"].get("code", ""),
+                name=data["curSubject"].get("name", "")
             )
-        if data["textBookVersion"]:
-            self.teaching_textbook = TextBook(
-                code=data["textBookVersion"]["code"],
-                name=data["textBookVersion"]["name"],
-                version=data["bookVersion"]["name"],
-                versionCode=data["bookVersion"]["code"],
-                #!TODO 暂无法通过对应的Code获取学科，暂时使用教师绑定的学科
-                bindSubject=self.subject,
+        
+        # 书籍版本
+        if data.get("bookVersion"):
+            self.book_version = data["bookVersion"].get("name", "")
+        
+        # 教科书版本
+        if data.get("textBookVersion") and self.cur_subject:
+            self.textbook_version = TextBook(
+                code=data["textBookVersion"].get("code", ""),
+                name=data["textBookVersion"].get("name", ""),
+                version=self.book_version or "",
+                versionCode=data.get("bookVersion", {}).get("code", 0),
+                bindSubject=self.cur_subject
             )
-        for teaching_grade in data["curTeachingGrades"]:
-            for clazz in teaching_grade["clazzs"]:
-                #!TODO 暂无法获取班级所在学校，暂时使用教师绑定的学校
-                self.teaching_classes.append(
-                    StuClass(
-                        id=clazz["code"],
-                        name=clazz["name"],
-                        grade=Grade(
-                            name=teaching_grade["name"], code=teaching_grade["code"]
-                        ),
-                        school=self.school,
+        
+        # 当前教学年级
+        if "curTeachingGrades" in data:
+            self.cur_teaching_grades = []
+            for grade_data in data["curTeachingGrades"]:
+                grade = Grade(
+                    code=grade_data.get("code"),
+                    name=grade_data.get("name")
+                )
+                self.cur_teaching_grades.append(grade)
+                
+                # 提取教学班级
+                if "clazzs" in grade_data:
+                    for clazz_data in grade_data["clazzs"]:
+                        self.teaching_classes.append(
+                            StuClass(
+                                id=clazz_data.get("code"),
+                                name=clazz_data.get("name"),
+                                grade=grade,
+                                school=self.school or School()
+                            )
+                        )
+        
+        # 学段-学科-年级信息
+        if "phaseAndSubjects" in data:
+            self.phase_subjects_grades = []
+            for psg_data in data["phaseAndSubjects"]:
+                phase = Phase(
+                    code=psg_data.get("phase", {}).get("code", ""),
+                    name=psg_data.get("phase", {}).get("name", "")
+                )
+                subjects = [
+                    BasicSubject(
+                        code=s.get("code", ""),
+                        name=s.get("name", "")
+                    )
+                    for s in psg_data.get("subjects", [])
+                ]
+                grades = [
+                    Grade(
+                        code=g.get("code", ""),
+                        name=g.get("name", "")
+                    )
+                    for g in psg_data.get("grades", [])
+                ]
+                self.phase_subjects_grades.append(
+                    PhaseSubjectGrade(
+                        phase=phase,
+                        subjects=subjects,
+                        grades=grades
                     )
                 )
+        
         return self
 
     def set_base_info(self):
@@ -90,89 +208,178 @@ class TeacherAccount(Account, TeaPerson):
         self.id = json_data.get("id")
         self.mobile = json_data.get("mobile")
         self.name = json_data.get("name")
-        self.roles = json_data.get("roles")
+        # 解析角色，跳过未知角色
+        self.roles = []
+        for role in json_data.get("roles", []):
+            try:
+                self.roles.append(TeacherRole.from_zxw(role))
+            except ValueError:
+                # 跳过未知角色（如parent等）
+                pass
         return self
 
     def get_school_exam_classes(
-        self, school_id: str, topic_set_id: str
-    ) -> List[StuClass]:
+        self, school_id: Optional[str] = None, topic_set_id: Optional[str] = None, exam_id: Optional[str] = None
+    ) -> ExtendedList[StuClass]:
+        """获取某个学校参加某个考试的班级列表, 学校id默认为当前教师所在学校, 科目id和考试id两者必须传一个，若传入多个则优先使用科目id.
+        tips: 班级信息只能获取到学校的id信息,无其余信息
+        """
+        if school_id is None:
+            if self.school is None:
+                raise ValueError("教师未关联学校, 无法获取学校ID")
+            school_id = self.school.id
+        if topic_set_id is None and exam_id is None:
+            raise ValueError("必须传入科目id或考试id其中一个参数")
+        if topic_set_id is None and exam_id is not None:
+            subjects = self.get_exam_subjects(exam_id)
+            if len(subjects) == 0:
+                return ExtendedList()
+            topic_set_id = subjects[0].id
         r = self._session.get(
             Url.GET_EXAM_SCHOOLS_URL,
             params={"schoolId": school_id, "markingPaperId": topic_set_id},
         )
         data = r.json()
         if data is None:
-            return []
-        classes = []
+            return ExtendedList()
+        classes: ExtendedList[StuClass] = ExtendedList()
 
         for each in data:
             classes.append(
                 StuClass(
                     id=each["classId"],
                     name=each["className"],
+                    grade=Grade(code=each["gradeCode"], name=each["gradeName"]),
                     school=School(id=each["schoolId"]),
                 )
             )
         return classes
 
-
+    
     def get_original_paper(
-        self, user_id: str, paper_id: str, save_to_path: str
-    ) -> bool:
-        """
-        获得原卷
+        self, user_id: str, topic_set_id: str, save_to_path: Optional[str] = None
+    ) -> OriginalPaper:
+        """获得原卷信息以及渲染后的HTML文件
         Args:
-            user_id (str): 为需要查询原卷的userId
-            paper_id (str): 为需要查询的学科ID(topicSetId)
-            save_to_path (str): 为原卷保存位置(html文件), 精确到文件名
-        Return:
-            bool: 正常会返回True
+            user_id (str): 需要查询原卷的userId
+            topic_set_id (str): 需要查询的学科ID(topicSetId)
+            save_to_path (str, optional): 原卷保存位置(html文件), 精确到文件名。如果为None则不保存
+        Returns:
+            OriginalPaper: 解析后的原卷数据对象
         """
-        data = self._session.get(
-            Url.ORIGINAL_PAPER_URL, params={"userId": user_id, "paperId": paper_id}
+        r = self._session.get(
+            Url.ORIGINAL_PAPER_URL, params={"userId": user_id, "paperId": topic_set_id}
         )
-        with open(save_to_path, encoding="utf-8", mode="w+") as fhandle:
-            fhandle.writelines(
-                data.text.replace("//static.zhixue.com", "https://static.zhixue.com")
-            )
-        return True
-
-    def get_teacher_roleText(self) -> List[str]:
+        html_content = r.text
+        
+        # 保存HTML文件（如果指定了路径）
+        if save_to_path:
+            with open(save_to_path, encoding="utf-8", mode="w+") as f:
+                f.writelines(
+                    html_content.replace("/api-classreport", "https://www.zhixue.com/api-classreport")
+                )
+        
+        # 解析原卷数据
+        return self._parse_original_paper_html(html_content, user_id, topic_set_id)
+    
+    def _parse_original_paper_html(self, html_content: str, user_id: str, topic_set_id: str) -> OriginalPaper:
+        """解析原卷HTML内容
+        Args:
+            html_content (str): HTML内容
+            user_id (str): 学生ID
+            topic_set_id (str): 科目ID
+        Returns:
+            OriginalPaper: 解析后的原卷数据对象
         """
-        获得教师的角色文本
-        Return:
-            List[str]: 教师的所有角色名称(忽略未知的教师角色)
-        """
-        str_roles = []
-        role_table = {
-            "teacher": "教师",
-            "subjectLeader": "备课组长",
-            "gradeDirecter": "年级组长",
-            "headteacher": "班主任",
-            "headmaster": "校长",
-            "viceHeadteacher": "副班主任",
-            "viceHeadmaster": "副校长",
-            "schoolAdministrator": "校管理员",
-        }
-        for role in self.roles:
-            str_role = role_table.get(role)
-            if str_role is None:
-                print(f"教师角色{role}未知。已忽略。")
-            else:
-                str_roles.append(str_role)
-        return str_roles
+        # 提取JavaScript变量
+        total_score = 0.0
+        answer_details = []
+        answer_sheet_images = []
+        
+        # 提取totalScore
+        total_score_match = re.search(r'var totalScore = ([\d.]+);', html_content)
+        if total_score_match:
+            total_score = float(total_score_match.group(1))
+        
+        # 提取answerSheetImages
+        sheet_images_match = re.search(r'var sheetImages = (\[.*?\]);', html_content, re.DOTALL)
+        if sheet_images_match:
+            try:
+                sheet_images_str = sheet_images_match.group(1)
+                answer_sheet_images = json.loads(sheet_images_str)
+            except json.JSONDecodeError:
+                # 如果JSON解析失败，返回空列表
+                answer_sheet_images = []
+        
+        # 提取sheetDatas（包含userAnswerRecordDTO）
+        sheet_datas_match = re.search(r'var sheetDatas = ({.*?});[\s\n]*var sheetImages', html_content, re.DOTALL)
+        if sheet_datas_match:
+            try:
+                sheet_datas_str = sheet_datas_match.group(1)
+                sheet_datas = json.loads(sheet_datas_str)
+                
+                # 解析用户答题记录
+                user_answer_record = sheet_datas.get("userAnswerRecordDTO", {})
+                
+                
+                # 解析答题详情
+                for detail_data in user_answer_record.get("answerRecordDetails", []):
+                    # 解析小题（主观题）
+                    sub_topics = []
+                    for sub_topic_data in detail_data.get("subTopics", []):
+                        # 解析教师批改记录
+                        marking_records = []
+                        for marking_record_data in sub_topic_data.get("teacherMarkingRecords", []):
+                            marking_records.append(TeacherMarkingRecord(
+                                score=marking_record_data.get("score", 0.0),
+                                marking_time=marking_record_data.get("markingTime", 0),
+                                teacher_name=marking_record_data.get("teacherName", ""),
+                                teacher_id=marking_record_data.get("teacherId", ""),
+                                role=marking_record_data.get("role", ""),
+                                is_excellent=marking_record_data.get("isExcellent", False),
+                                is_typical_error=marking_record_data.get("isTypicalError", False),
+                                marking_content=marking_record_data.get("markingContent", "")
+                            ))
+                        
+                        sub_topics.append(SubTopicDetail(
+                            score=sub_topic_data.get("score", 0.0),
+                            sub_topic_index=sub_topic_data.get("subTopicIndex", -1),
+                            score_source=sub_topic_data.get("scoreSource", ""),
+                            teacher_marking_records=marking_records
+                        ))
+                    
+                    answer_details.append(AnswerRecordDetail(
+                        topic_number=detail_data.get("topicNumber", 0),
+                        disp_title=detail_data.get("dispTitle", ""),
+                        answer=detail_data.get("answer", ""),
+                        score=detail_data.get("score", 0.0),
+                        standard_score=detail_data.get("standardScore", 0.0),
+                        is_correct=detail_data.get("isCorrect", False),
+                        answer_type=detail_data.get("answerType", ""),
+                        source_category_name=detail_data.get("sourceCategoryName", ""),
+                        topic_type_id=detail_data.get("topicTypeId", ""),
+                        sub_topics=sub_topics,
+                        is_excellent=detail_data.get("isExcellent", False),
+                        is_typical_error=detail_data.get("isTypicalError", False),
+                        marking_paper_topic_id=detail_data.get("markingPaperTopicId", "")
+                    ))
+            except json.JSONDecodeError:
+                # 如果JSON解析失败，返回空数据
+                pass
+        
+        return OriginalPaper(
+            user_id=user_id,
+            topic_set_id=topic_set_id,
+            total_score=total_score,
+            answer_details=answer_details,
+            answer_sheet_images=answer_sheet_images
+        )
 
     def get_exam_subjects(self, exam_id: str) -> ExtendedList[Subject]:
-        """
-        获取某个考试的考试科目
-        Args:
-            exam_id (str): 为需要查询考试的id
-        Return:
-            bool: 正常会返回True
-        """
+        """获取某个考试的总考试科目"""
         r = self._session.get(Url.GET_EXAM_SUBJECTS_URL, params={"examId": exam_id})
         data = r.json()["result"]
-        subjects = []
+        subjects: ExtendedList[Subject] = ExtendedList()
         for each in data:
             name = each["subjectName"]
             if name != "总分" and (not each.get("isSubjectGroup")):  # 排除学科组()
@@ -184,55 +391,65 @@ class TeacherAccount(Account, TeaPerson):
                         standard_score=each["standScore"],
                     )
                 )
-        return ExtendedList(sorted(subjects, key=lambda x: x.code, reverse=False))
+        subjects.sort(key=lambda x: x.code, reverse=False)
+        return subjects
 
-    def get_exam_detail(self, exam_id: str) -> Exam:
+    def get_exam_detail(self, exam_id: str) -> Optional[Exam]:
         """
-        获取某个考试的详细情况
-        包括参考学校和考试科目
+        获取某个考试的详细情况, 包括考试科目, 参考班级等信息
+        注意: 该接口不完全获取到考试科目的满分
+        
         Args:
             exam_id (str): 为需要查询考试的id
         Return:
-            Exam
+            Optional[Exam]: 考试详细信息, 若考试不存在则返回None
         """
         r = self._session.post(Url.GET_EXAM_DETAIL_URL, data={"examId": exam_id})
-        data = r.json()["result"]
-        exam = Exam()
-        schools: ExtendedList[School] = ExtendedList()
-        for each in data["schoolList"]:
-            schools.append(School(id=each["schoolId"], name=each["schoolName"]))
-        exam.id = exam_id
-        exam.name = data["exam"]["examName"]
-        exam.grade_code = data["exam"]["gradeCode"]
-
-        exam.schools = schools
-        exam.status = str(data["exam"]["isCrossExam"])
-        exam.subjects = self.get_exam_subjects(exam_id)
+        data = r.json()
+        if len(data["result"]) == 0:
+            return None
+        data = data["result"][0]  # TODO: 目前不考虑考试报告的情况
+        exam = Exam(id=exam_id, name=data["examName"])
+        subject_map: Dict[str, Subject] = {}
+        for each in data["classList"]:
+            school = School(id=each["schoolId"])
+            subjects = [Subject(id=inner["topicSetId"], name=inner["subjectName"], code=inner["subjectCode"], standard_score=inner.get("standScore", "0.0"), exam_id=exam_id) for inner in each["examSubjectList"]]
+            for subject in subjects:
+                if subject.id not in subject_map:
+                    subject_map[subject.id] = subject
+                else:
+                    if subject.id != subject_map[subject.id].id:
+                        raise ValueError(f"这种情况不应该发生, 请联系开发者，请将下面信息在issue中反馈:\n{ r.text }")
+            if exam.schools.find_by_id(each["schoolId"]) is None:
+                exam.schools.append(School(id=each["schoolId"]))
+            exam.clazzs.append(StuClass(id=each["classId"], name=each["className"], grade=Grade(code=each["gradeCode"]), school=school))
+            exam.grade_code = each["gradeCode"]  # 一般来说同一考试年级代码是一样的
+        exam.subjects = ExtendedList(list(subject_map.values()))
         return exam
 
     def get_marking_progress(
         self,
         topic_set_id: str,
-    ) -> List[MarkingProgress]:
+    ) -> ExtendedList[MarkingProgress]:
         """
         获取某场考试指定科目阅卷情况
         Args:
             topic_set_id (str): 科目id
         Return:
-            List[MarkingProgress]
+            ExtendedList[MarkingProgress]
         """
         r = self._session.post(
-            "https://pt-ali-bj-re.zhixue.com/marking/marking/markingTopicProgress/",
+            Url.GET_MARKING_PROGRESS_URL,
             data={"markingPaperId": topic_set_id},
             headers={"token": self.get_token()},
         )
         data = r.json()
-        result = []
+        result: ExtendedList[MarkingProgress] = ExtendedList()
         for each in data:
             result.append(
                 MarkingProgress(
                     topic_number=each["topicNumber"],
-                    complete_rate=each["comleteRate"],
+                    complete_rate=each["comleteRate"],  # 本来就是错误的拼写
                     complete_count=each["completeCount"],
                     all_count=each["allCount"],
                 )
@@ -243,7 +460,7 @@ class TeacherAccount(Account, TeaPerson):
         """
         获取学术信息用以获取教师考试
         """
-        r = self._session.get(Url.GET_AcademicTermTeachingCycle_URL)
+        r = self._session.get(Url.GET_ACADEMIC_TERM_TEACHING_CYCLE_URL)
         data = r.json()["result"]
         result = []
         for did in data["termTeachingCycleMap"]:
@@ -314,7 +531,6 @@ class TeacherAccount(Account, TeaPerson):
                     "endTime": academic_info.end_time,
                 }
             )
-            r = self._session.get(Url.GET_EXAMS_URL, params=params_data)
         else:
             # 按 学级 查询
             params_data.update(
@@ -327,7 +543,7 @@ class TeacherAccount(Account, TeaPerson):
                     "pageIndex": page_index,
                 }
             )
-            r = self._session.get(Url.GET_EXAMS_URL, params=params_data)
+        r = self._session.get(Url.GET_EXAMS_URL, params=params_data)
         exams = []
         data = r.json()["result"]
         if "classPaperSummaryList" not in data:
@@ -362,6 +578,3 @@ class TeacherAccount(Account, TeaPerson):
             return self._token
         self._token = self._session.get(Url.GET_TOKEN_URL).json()["result"]
         return self._token
-
-    def get_session(self):
-        return self._session

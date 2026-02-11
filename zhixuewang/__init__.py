@@ -1,6 +1,6 @@
 __author__ = "anwenhu,MasterYuan418,immoses648,krn1pnc,Haorwen,amakerlife"
-__date__ = "2025/11/17 21:58"
-__version__ = "1.4.0"
+__date__ = "2026/2/12 6:21"
+__version__ = "1.5.1"
 
 from zhixuewang.account import (
     login_cookie,
@@ -13,5 +13,4 @@ __all__ = [
     "login_cookie",
     "login_playwright",
     "rewrite_str",
-    "load_account",
 ]

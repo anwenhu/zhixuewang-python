@@ -3,7 +3,7 @@ import json
 import time
 import uuid
 from datetime import datetime
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from zhixuewang.exceptions import (
     PageConnectionError,
@@ -36,18 +36,18 @@ from zhixuewang.models import (
 from zhixuewang.student.urls import Url
 
 
-def _check_is_uuid(msg: str):
-    """判断msg是否为uuid"""
+def _check_is_uuid(s: str):
+    """判断s是否为uuid"""
     return (
-            len(msg) == 36
-            and msg[14] == "4"
-            and msg[8] == msg[13] == msg[18] == msg[23] == "-"
+            len(s) == 36
+            and s[14] == "4"
+            and s[8] == s[13] == s[18] == s[23] == "-"
     )
 
 
-def _md5_encode(msg: str) -> str:
+def _md5_encode(s: str) -> str:
     md5 = hashlib.md5()
-    md5.update(msg.encode(encoding="utf-8"))
+    md5.update(s.encode(encoding="utf-8"))
     return md5.hexdigest()
 
 class StudentAccount(Account, StuPerson):
@@ -55,16 +55,15 @@ class StudentAccount(Account, StuPerson):
 
     def __init__(self, session):
         super().__init__(session, Role.student)
-        # self._token_timestamp = ["", 0]
         self._auth = {
             "token": "",
             "timestamp": 0.0
         }
         self.exams: ExtendedList[Exam] = ExtendedList()
 
-    def get_session(self):
-        '''获得学生端Session'''
-        return self._session
+    def to_student(self) -> "StudentAccount":
+        """将Account转换为StudentAccount"""
+        return self
 
     def get_auth_header(self) -> dict:
         """获取header"""
@@ -130,7 +129,7 @@ class StudentAccount(Account, StuPerson):
         """获取学年
 
         Returns:
-            ExtendedList[Tuple[str, str]]: 学年列表
+            ExtendedList[AcademicYear]: 学年列表
         """
         r = self._session.get(
             Url.GET_ACADEMIC_YEAR_URL,
@@ -155,32 +154,28 @@ class StudentAccount(Account, StuPerson):
     def _get_latest_valid_academic_year(self) -> AcademicYear:
         def check_is_valid(exam: str) -> bool:
             return exam != ""
-        academic_years = self.get_academic_year()
-        cnt = 0
-        while True:
-            start_school_year = academic_years[cnt].begin_time
-            end_school_year = academic_years[cnt].end_time
-            cnt += 1
+        academic_years: ExtendedList[AcademicYear] = self.get_academic_year()
+        for academic_year in academic_years:
             r = self._session.get(
                 Url.GET_RECENT_EXAM_URL,
                 params={
-                    "startSchoolYear": start_school_year,
-                    "endSchoolYear": end_school_year,
+                    "startSchoolYear": academic_year.begin_time,
+                    "endSchoolYear": academic_year.end_time,
                 },
                 headers=self.get_auth_header()
             )
             if check_is_valid(r.json()["result"]):
-                break
-        return academic_years[cnt - 1]
+                return academic_year
+        raise ValueError("没有找到有效的学年")
 
-    def get_exam(self, exam_data: Union[Exam, str] = "") -> Exam:
+    def get_exam(self, exam_data: Union[Exam, str] = "") -> Optional[Exam]:
         """获取考试
 
         Args:
             exam_data (Union[Exam, str]): 考试id 或 考试名称, 为Exam实例时直接返回, 为默认值时返回最新考试
 
         Returns:
-            Exam
+            Optional[Exam]
         """
         if not exam_data:
             return self.get_latest_exam()
@@ -198,8 +193,10 @@ class StudentAccount(Account, StuPerson):
             exam = exams.find_by_name(exam_data)
         return exam
 
-    def get_page_exam(self, page_index: int, acamemic_year: AcademicYear) -> Tuple[ExtendedList[Exam], bool]:
+    def get_page_exam(self, page_index: int, acamemic_year: Optional[AcademicYear] = None) -> Tuple[ExtendedList[Exam], bool]:
         """获取指定页数的考试列表"""
+        if acamemic_year is None:
+            acamemic_year = self._get_latest_valid_academic_year()
         exams: ExtendedList[Exam] = ExtendedList()
         r = self._session.get(
             Url.GET_EXAM_URL,
@@ -336,7 +333,6 @@ class StudentAccount(Account, StuPerson):
         Args:
             exam_data (Union[Exam, str]): 考试id 或 考试名称 或 Exam实例, 默认值为最新考试
             has_total_score (bool): 是否计算总分, 默认为True
-            academic_year (Optional[AcademicYear]): 学年, 默认为None
 
         Returns:
             Mark
@@ -450,6 +446,7 @@ class StudentAccount(Account, StuPerson):
         return self.__get_original(subject.id, exam.id)
 
     def __get_answer_records(self, topic_set_id: str, exam_id: str):
+        # TODO: 需要测试
         r = self._session.get(
             Url.GET_ORIGINAL_URL,
             params={
@@ -472,19 +469,18 @@ class StudentAccount(Account, StuPerson):
                 subtopic_records=None
             )
             if "subTopics" in topic:
-                topic_records.subtopic_records = []
+                topic_records.subtopic_records = ExtendedList()
                 for subtopic in topic["subTopics"]:
                     subtopic_record = SubTopicRecord(
                         score=subtopic["score"], marking_records=None)
                     if "teacherMarkingRecords" in subtopic:
-                        subtopic_record.marking_records = [
+                        subtopic_record.marking_records = ExtendedList([
                             MarkingRecord(
                                 time=datetime.fromtimestamp(marking["markingTime"] / 1e3),
                                 score=marking["score"],
-                                teacher_name=marking["teacherName"]
                             )
                             for marking in subtopic["teacherMarkingRecords"]
-                        ]
+                        ])
                     topic_records.subtopic_records.append(subtopic_record)
             records.append(topic_records)
         return records
@@ -525,14 +521,14 @@ class StudentAccount(Account, StuPerson):
             )
         return clazzs
 
-    def get_clazz(self, clazz_data: Union[StuClass, str] = "") -> StuClass:
+    def get_clazz(self, clazz_data: Union[StuClass, str] = "") -> Optional[StuClass]:
         """获取当前年级班级
 
         Args:
             clazz_data (Union[StuClass, str]): 班级id 或 班级名称, 为StuClass实例时直接返回, 为空时返回自己班级
 
         Returns:
-            StuClass
+            Optional[StuClass]
         """
         if not clazz_data:
             return self.clazz
