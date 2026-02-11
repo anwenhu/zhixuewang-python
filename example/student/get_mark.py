@@ -1,11 +1,12 @@
 # 获取成绩
-from zhixuewang import login_student
 import os
+
+from zhixuewang import login_playwright
 
 if __name__ == "__main__":
     username = input("请输入用户名:")
     password = input("请输入密码:")
-    zxw = login_student(username, password)
+    zxw = login_playwright(username, password).to_student()
     os.system("cls")
     print("登录成功. 正在抓取考试列表...")
     exams = zxw.get_exams()

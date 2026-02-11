@@ -1,4 +1,4 @@
-from zhixuewang import rewrite_str, login_student
+from zhixuewang import login_playwright, rewrite_str
 from zhixuewang.models import Mark
 
 
@@ -18,5 +18,5 @@ def _(self):
 if __name__ == "__main__":
     username = input("请输入用户名:").strip()
     password = input("请输入密码:").strip()
-    zxw = login_student(username, password)
+    zxw = login_playwright(username, password).to_student()
     print(zxw.get_self_mark())

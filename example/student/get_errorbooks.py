@@ -2,12 +2,13 @@
 # TODO: 字体大小不一致
 # 以下代码参考: https://github.com/RICHARDCJ249/zhixue_errorbook
 
-from zhixuewang import login_student
-import jinja2
-import os
 import datetime
-from zhixuewang.account import load_account
+import os
 import subprocess
+
+import jinja2
+
+from zhixuewang import login_cookie
 
 WKHTMLTOPDF_PATH = r'wkhtmltopdf.exe'  # wkhtmltopdf 地址
 if not os.path.exists("wkhtmltopdf.exe"):
@@ -47,14 +48,8 @@ def clean(b_subjects):
 
 if __name__ == "__main__":
     print('尝试登陆中······')
-    if os.path.exists("user.data"):
-        zxw = load_account()
-    else:
-        username = input('用户名: ').strip()
-        password = input('密码: ').strip()
-        zxw = login_student(username, password)
-        print("自动将账号密码加密保存在当前目录下")
-        zxw.save_account()
+    cookie = input('请输入您的智学网cookie: ').strip()
+    zxw = login_cookie(cookie).to_student()
     print('登陆成功')
 
     exams = zxw.get_page_exam(1)[0]
