@@ -1,6 +1,6 @@
 import json
 import re
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from zhixuewang.models import (
     Account,
@@ -34,26 +34,28 @@ from zhixuewang.teacher.urls import Url
 class TeacherAccount(Account, TeaPerson):
     """老师账号"""
 
-    teaching_classes: List[StuClass] = []
-    """教学班级列表"""
-    school: Optional[School] = None
-    """所在学校"""
-    cur_phase: Optional[Phase] = None
-    """当前学段"""
-    cur_subject: Optional[BasicSubject] = None
-    """当前学科"""
-    book_version: Optional[str] = None
-    """书籍版本"""
-    textbook_version: Optional[TextBook] = None
-    """教科书版本"""
-    phase_subjects_grades: List[PhaseSubjectGrade] = []
-    """学段-学科-年级信息"""
-    cur_teaching_grades: List[Grade] = []
-    """当前教学年级"""
+    
 
     def __init__(self, session):
         super().__init__(session, Role.teacher)
         self._token = None
+        
+        self.teaching_classes: List[StuClass] = []
+        """教学班级列表"""
+        self.school: Optional[School] = None
+        """所在学校"""
+        self.cur_phase: Optional[Phase] = None
+        """当前学段"""
+        self.cur_subject: Optional[BasicSubject] = None
+        """当前学科"""
+        self.book_version: Optional[str] = None
+        """书籍版本"""
+        self.textbook_version: Optional[TextBook] = None
+        """教科书版本"""
+        self.phase_subjects_grades: List[PhaseSubjectGrade] = []
+        """学段-学科-年级信息"""
+        self.cur_teaching_grades: List[Grade] = []
+        """当前教学年级"""
     
     def to_teacher(self) -> "TeacherAccount":
         """将Account转换为TeacherAccount"""
@@ -238,7 +240,6 @@ class TeacherAccount(Account, TeaPerson):
             params={"schoolId": school_id, "markingPaperId": topic_set_id},
         )
         data = r.json()
-        print(data)
         if data is None:
             return ExtendedList()
         classes: ExtendedList[StuClass] = ExtendedList()
@@ -409,10 +410,10 @@ class TeacherAccount(Account, TeaPerson):
             return None
         data = data["result"][0]  # TODO: 目前不考虑考试报告的情况
         exam = Exam(id=exam_id, name=data["examName"])
-        subject_map: dict[str, Subject] = {}
+        subject_map: Dict[str, Subject] = {}
         for each in data["classList"]:
             school = School(id=each["schoolId"])
-            subjects = [Subject(id=inner["topicSetId"], name=inner["subjectName"], code=inner["subjectCode"], standard_score=inner.get("standScore", "0"), exam_id=exam_id) for inner in each["examSubjectList"]]
+            subjects = [Subject(id=inner["topicSetId"], name=inner["subjectName"], code=inner["subjectCode"], standard_score=inner.get("standScore", "0.0"), exam_id=exam_id) for inner in each["examSubjectList"]]
             for subject in subjects:
                 if subject.id not in subject_map:
                     subject_map[subject.id] = subject
@@ -429,7 +430,7 @@ class TeacherAccount(Account, TeaPerson):
     def get_marking_progress(
         self,
         topic_set_id: str,
-    ) -> List[MarkingProgress]:
+    ) -> ExtendedList[MarkingProgress]:
         """
         获取某场考试指定科目阅卷情况
         Args:

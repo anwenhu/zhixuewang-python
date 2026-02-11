@@ -325,9 +325,9 @@ class Exam:
     name: str = ""
     status: str = ""
     grade_code: str = ""
-    subjects: ExtendedList[Subject] = field(default_factory=ExtendedList[Subject], repr=False)  # 总考试科目(不同班级实际考试科目可能只有部分)
-    clazzs: ExtendedList[StuClass] = field(default_factory=ExtendedList[StuClass], repr=False)  # 参考班级
-    schools: ExtendedList[School] = field(default_factory=ExtendedList[School], repr=False)     # 参考学校
+    subjects: ExtendedList[Subject] = field(default_factory=ExtendedList, repr=False)  # type: ignore # 总考试科目(不同班级实际考试科目可能只有部分)
+    clazzs: ExtendedList[StuClass] = field(default_factory=ExtendedList, repr=False)  # type: ignore # 参考班级
+    schools: ExtendedList[School] = field(default_factory=ExtendedList, repr=False)     # type: ignore # 参考学校
     create_user: Person = field(default_factory=Person, repr=False)
     create_time: float = field(default=0, repr=False)
     class_rank: int = field(default=0, repr=False)
@@ -366,12 +366,12 @@ class Mark(ExtendedList[SubjectScore]):
     """一场考试的成绩"""
 
     def __init__(
-            self, ls: Optional[list] = None, exam: Exam = Exam(), person: StuPerson = StuPerson()
+            self, ls: Optional[list] = None, exam: Optional[Exam] = None, person: Optional[StuPerson] = None
     ):
 
         super().__init__([] if ls is None else ls)
-        self.exam = exam
-        self.person = person
+        self.exam = exam if exam is not None else Exam()
+        self.person = person if person is not None else StuPerson()
 
     def __repr__(self):
         if self.exam and self.person:

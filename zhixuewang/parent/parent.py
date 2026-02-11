@@ -38,6 +38,6 @@ class ParentAccount(StudentAccount):
         raise NotImplementedError("家长账户无法获取班级列表")
     
     @deprecated("家长账户无法获取班级信息")
-    def get_clazz(self, clazz_data: StuClass | str = "") -> StuClass | None:
+    def get_clazz(self, clazz_data: Union[StuClass, str] = "") -> StuClass | None:
         raise NotImplementedError("家长账户无法获取班级信息")
    

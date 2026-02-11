@@ -3,10 +3,10 @@
 演示如何获取和解析学生的答题卡数据
 """
 
-from zhixuewang import login
+from zhixuewang import login_playwright
 
 # 创建教师账号
-tea = login("用户名", "密码")
+tea = login_playwright("用户名", "密码").to_teacher()
 
 # 获取原卷数据（不保存HTML文件）
 user_id = "学生ID"
@@ -21,9 +21,9 @@ print()
 
 # 显示客观题得分情况
 print("=== 客观题得分 ===")
-objective_questions = paper.get_objective_questions()
+objective_questions = paper.objective_questions
 print(f"客观题总数: {len(objective_questions)}")
-print(f"客观题总分: {paper.get_total_objective_score()}")
+print(f"客观题总分: {paper.total_objective_score}")
 print()
 
 # 显示前5道客观题详情
@@ -37,22 +37,15 @@ print()
 
 # 显示主观题得分情况
 print("=== 主观题得分 ===")
-subjective_questions = paper.get_subjective_questions()
+subjective_questions = paper.subjective_questions
 print(f"主观题总数: {len(subjective_questions)}")
-print(f"主观题总分: {paper.get_total_subjective_score()}")
+print(f"主观题总分: {paper.total_subjective_score}")
 print()
 
 # 显示主观题详情
 for detail in subjective_questions:
     print(f"第{detail.topic_number}题 ({detail.source_category_name}): "
           f"{detail.score}/{detail.standard_score}分")
-    
-    # 如果有图片答案，显示图片URL
-    if detail.image_answer:
-        print(f"  答题卡图片数量: {len(detail.image_answer)}")
-        image_urls = detail.get_image_urls()
-        for idx, url in enumerate(image_urls, 1):
-            print(f"    图片{idx}: {url}")
     
     # 如果有小题，显示小题得分
     if detail.sub_topics:
@@ -66,7 +59,7 @@ for detail in subjective_questions:
 
 # 显示答题卡图片URL
 print("=== 答题卡图片 ===")
-sheet_urls = paper.get_sheet_image_urls()
+sheet_urls = paper.answer_sheet_images
 for idx, url in enumerate(sheet_urls, 1):
     print(f"答题卡{idx}: {url}")
 
