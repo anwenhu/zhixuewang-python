@@ -1,6 +1,6 @@
 [project]
 name = "zhixuewang"
-version = "1.5.0"
+version = "1.5.1"
 description = "智学网的api"
 readme = "README.md"
 requires-python = ">=3.7"

@@ -1,6 +1,6 @@
 __author__ = "anwenhu,MasterYuan418,immoses648,krn1pnc,Haorwen,amakerlife"
-__date__ = "2026/2/12 6:02"
-__version__ = "1.5.0"
+__date__ = "2026/2/12 6:21"
+__version__ = "1.5.1"
 
 from zhixuewang.account import (
     login_cookie,
