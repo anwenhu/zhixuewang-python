@@ -30,6 +30,10 @@ class TeacherAccount(Account, TeaPerson):
         super().__init__(session, Role.teacher)
         self.roles = None
         self._token = None
+    
+    def to_teacher(self) -> "TeacherAccount":
+        """将Account转换为TeacherAccount"""
+        return self
 
     def set_advanced_info(self):
         r = self._session.get(

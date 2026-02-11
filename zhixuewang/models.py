@@ -3,9 +3,13 @@ import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Callable, List, TypeVar, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, TypeVar, Union
 
 from zhixuewang.session import get_basic_session
+
+if TYPE_CHECKING:
+    from zhixuewang.student.student import StudentAccount
+    from zhixuewang.teacher.teacher import TeacherAccount
 
 
 class Role(Enum):
@@ -19,6 +23,14 @@ class Account:
         self.role = role
         self.username = base64.b64decode(session.cookies["uname"].encode()).decode()
 
+    def get_session(self):
+        return self._session
+    
+    def to_student(self) -> "StudentAccount":
+        raise NotImplementedError("账号无法转换为学生账号")
+    
+    def to_teacher(self) -> "TeacherAccount":
+        raise NotImplementedError("账号无法转换为教师账号")
 
 T = TypeVar("T")
 
@@ -26,7 +38,7 @@ T = TypeVar("T")
 class ExtendedList(List[T]):
     """扩展列表, 方便找到列表里的元素"""
 
-    def __init__(self, ls: List[T] = None):
+    def __init__(self, ls: Optional[List[T]] = None):
         super().__init__(list() if ls is None else ls)
 
     def foreach(self, f: Callable[[T], None]):
@@ -48,19 +60,19 @@ class ExtendedList(List[T]):
 
     def find_by_name(self, name: str) -> Union[T, None]:
         """返回列表里第一个特定名字的元素, 没有则返回None"""
-        return self.find(lambda d: d.name == name)
+        return self.find(lambda d: d.name == name) # type: ignore
 
     def find_all_by_name(self, name: str) -> "ExtendedList[T]":
         """返回列表里所有特定名字的元素"""
-        return self.find_all(lambda d: d.name == name)
+        return self.find_all(lambda d: d.name == name) # type: ignore
 
     def find_by_id(self, spec_id: str) -> Union[T, None]:
         """返回列表里第一个特定id的元素, 没有则返回None"""
-        return self.find(lambda d: d.id == spec_id)
+        return self.find(lambda d: d.id == spec_id) # type: ignore
 
     def find_all_by_id(self, spec_id: str) -> "ExtendedList[T]":
         """返回列表里所有特定id的元素"""
-        return self.find_all(lambda d: d.id == spec_id)
+        return self.find_all(lambda d: d.id == spec_id) # type: ignore
 
 
 
@@ -114,7 +126,7 @@ class StuClass:
     school: School = field(default_factory=School, repr=False)
 
     def __eq__(self, other):
-        return type(other) == type(self) and other.id == self.id
+        return type(other) is type(self) and other.id == self.id
 
     def __str__(self):
         return f"学校: {self.school} 班级: {self.name}"
@@ -165,7 +177,7 @@ class Subject(BasicSubject):
     create_time: float = field(default=0, repr=False)
 
     def __eq__(self, other):
-        return type(other) == type(self) and other.id == self.id
+        return type(other) is type(self) and other.id == self.id
 
 
 @dataclass
@@ -192,8 +204,8 @@ class Exam:
     name: str = ""
     status: str = ""
     grade_code: str = ""
-    subjects: ExtendedList[Subject] = field(default_factory=ExtendedList, repr=False)
-    schools: ExtendedList[School] = field(default_factory=ExtendedList, repr=False)
+    subjects: ExtendedList[Subject] = field(default_factory=ExtendedList[Subject], repr=False)
+    schools: ExtendedList[School] = field(default_factory=ExtendedList[School], repr=False)
     create_user: Person = field(default_factory=Person, repr=False)
     create_time: float = field(default=0, repr=False)
     class_rank: int = field(default=0, repr=False)
@@ -205,7 +217,7 @@ class Exam:
         return bool(self.id)
 
     def __eq__(self, other):
-        return type(other) == type(self) and other.id == self.id
+        return type(other) is type(self) and other.id == self.id
 
 
 @dataclass
@@ -232,7 +244,7 @@ class Mark(ExtendedList[SubjectScore]):
     """一场考试的成绩"""
 
     def __init__(
-            self, ls: list = None, exam: Exam = Exam(), person: StuPerson = StuPerson()
+            self, ls: Optional[list] = None, exam: Exam = Exam(), person: StuPerson = StuPerson()
     ):
 
         super().__init__([] if ls is None else ls)
@@ -245,6 +257,7 @@ class Mark(ExtendedList[SubjectScore]):
                 [f"{subject}\n" for subject in self]
             )
             return msg[:-1]
+        return super().__repr__()
 
     def __str__(self):
         return self.__repr__()
@@ -264,7 +277,7 @@ class SubTopicRecord:
     """小题得分详情"""
 
     score: float
-    marking_records: Union[None, ExtendedList[MarkingRecord]]
+    marking_records: Optional[ExtendedList[MarkingRecord]]
 
 
 @dataclass
@@ -274,7 +287,7 @@ class TopicRecord:
     title: str
     score: float
     standard_score: float
-    subtopic_records: Union[None, ExtendedList[SubTopicRecord]]
+    subtopic_records: Optional[ExtendedList[SubTopicRecord]]
 
 
 class AnswerRecord(ExtendedList[TopicRecord]):
@@ -285,8 +298,8 @@ class AnswerRecord(ExtendedList[TopicRecord]):
 class HwType:
     """作业类型, eg: 105 自由出题"""
 
-    name: str
-    code: int
+    name: str = ""
+    code: int = 0
 
 
 @dataclass

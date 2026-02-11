@@ -13,5 +13,4 @@ __all__ = [
     "login_cookie",
     "login_playwright",
     "rewrite_str",
-    "load_account",
 ]

@@ -1,5 +1,6 @@
 import asyncio
 import base64
+from typing import Union
 
 import requests
 from playwright.async_api import Playwright, async_playwright
@@ -24,11 +25,11 @@ def check_is_student(s: requests.Session) -> bool:
 
 
 
-def login_cookie(cookies: dict | str) -> Account:
+def login_cookie(cookies: Union[dict, str]) -> Account:
     """通过cookie登录账号
 
     Args:
-        cookie (dict|str): 用户cookie
+        cookies (Union[dict, str]): 用户cookie
 
     Returns:
         Person
@@ -45,7 +46,7 @@ def login_cookie(cookies: dict | str) -> Account:
         return StudentAccount(session).set_base_info()
     return TeacherAccount(session).set_base_info().set_advanced_info()
 
-async def playwright_get_cookie(playwright: Playwright, username, password):
+async def playwright_get_cookie(playwright: Playwright, username: str, password: str) -> dict:
     chromium = playwright.chromium
     browser = await chromium.launch(headless=False)
     context = await browser.new_context()
@@ -62,7 +63,7 @@ async def playwright_get_cookie(playwright: Playwright, username, password):
     await page.wait_for_url("https://www.zhixue.com/htm-vessel/**", timeout=float('inf'))
     cookies = await page.context.cookies()
     # 将Cookie转换为字典
-    cookies_dict = {cookie['name']: cookie['value'] for cookie in cookies}
+    cookies_dict = {cookie.get("name"): cookie.get("value") for cookie in cookies}
     await browser.close()
     return cookies_dict
 
