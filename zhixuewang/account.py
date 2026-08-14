@@ -57,21 +57,51 @@ def login_cookie(cookies: Union[dict, str]) -> Account:
 
 async def playwright_get_cookie(playwright: Playwright, username: str, password: str) -> dict:
     chromium = playwright.chromium
-    browser = await chromium.launch(headless=False)
-    context = await browser.new_context()
+    
+    browser = await chromium.launch(
+        headless=False,
+        args=['--disable-blink-features=AutomationControlled']
+    )
+    
+    context = await browser.new_context(
+        viewport={'width': 1920, 'height': 1080},
+        locale='zh-CN',
+        timezone_id='Asia/Shanghai',
+        user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    )
+
+    await context.add_init_script("""
+        Object.defineProperty(navigator, 'webdriver', {
+            get: () => undefined
+        });
+        
+        Object.defineProperty(navigator, 'plugins', {
+            get: () => [
+                { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
+                { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },
+                { name: 'Native Client', filename: 'internal-nacl-plugin' }
+            ],
+        });
+        
+        delete window.__playwright;
+        delete window.__pw_manual;
+    """)
+    
     page = await context.new_page()
     await page.goto("https://www.zhixue.com/wap_login.html")
-    await page.wait_for_load_state('networkidle')  # 等待网络状态为空闲
+    await page.wait_for_load_state('networkidle')
     print(await page.title())
     await page.fill('#txtUserName', username)
     await page.fill('#txtPassword', password)
 
-    # 点击注册按钮
+    # 点击登录按钮
     await asyncio.sleep(0.5)
     await page.click('#signup_button')
+    
+    # 等待跳转，超时时间保持无限（或设置一个合理值如 120000ms）
     await page.wait_for_url("https://www.zhixue.com/htm-vessel/**", timeout=float('inf'))
+    
     cookies = await page.context.cookies()
-    # 将Cookie转换为字典
     cookies_dict = {cookie.get("name"): cookie.get("value") for cookie in cookies}
     await browser.close()
     return cookies_dict

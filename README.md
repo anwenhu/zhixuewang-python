@@ -1,6 +1,6 @@
 # zhixuewang-python
 
-**注意: 由于登录接口变动, 如果只有学生账号, 该项目与智学网网页版并无二致, 此项目将大概率不会再有关于接口的更新**
+**维护说明：由于智学网登录及部分接口发生变化，部分仅面向学生网页端的功能可能不再继续适配；项目仍会维护现有可用功能、兼容性问题、Bug 修复及社区贡献。**
 
 ![](https://img.shields.io/badge/License-MIT-blue) ![](https://img.shields.io/badge/Python-3+-green) ![](https://img.shields.io/pypi/v/zhixuewang)
 
