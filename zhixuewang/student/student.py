@@ -55,6 +55,7 @@ class StudentAccount(Account, StuPerson):
 
     def __init__(self, session):
         super().__init__(session, Role.student)
+        self.session = session
         self._auth = {
             "token": "",
             "timestamp": 0.0
@@ -65,20 +66,26 @@ class StudentAccount(Account, StuPerson):
         """将Account转换为StudentAccount"""
         return self
 
+    def _build_auth_header(self, auth_guid: str, auth_time_stamp: str, auth_token: str, xtoken: str) -> dict:
+        """构造认证请求头"""
+        return {
+            "authbizcode": "0001",
+            "authguid": auth_guid,
+            "authtimestamp": auth_time_stamp,
+            "authtoken": auth_token,
+            "XToken": xtoken,
+        }
+
     def get_auth_header(self) -> dict:
         """获取header"""
         auth_guid = str(uuid.uuid4())
         auth_time_stamp = str(int(time.time() * 1000))
         auth_token = _md5_encode(auth_guid + auth_time_stamp + "iflytek!@#123student")
+
         token, cur_time = self._auth["token"], self._auth["timestamp"]
-        if token and time.time() - cur_time < 600:  # 判断token是否过期
-            return {
-                "authbizcode": "0001",
-                "authguid": auth_guid,
-                "authtimestamp": auth_time_stamp,
-                "authtoken": auth_token,
-                "XToken": token,
-            }
+        if token and time.time() - cur_time < 600:  # token 未过期
+            return self._build_auth_header(auth_guid, auth_time_stamp, auth_token, token)
+
         r = self._session.get(
             Url.XTOKEN_URL,
             headers={
@@ -90,9 +97,14 @@ class StudentAccount(Account, StuPerson):
         )
         if not r.ok:
             raise PageConnectionError(f"get_auth_header出错 \n {r.text}")
-        self._auth["token"] = r.json()["result"]
+
+        new_token = r.json().get("result")
+        if not new_token:  # 关键：防止空 token 被缓存 & 返回
+            raise PageConnectionError(f"XToken 获取失败，返回内容异常：{r.text}")
+
+        self._auth["token"] = new_token
         self._auth["timestamp"] = time.time()
-        return self.get_auth_header()
+        return self._build_auth_header(auth_guid, auth_time_stamp, auth_token, new_token)
 
     def set_base_info(self):
         """设置账户基本信息, 如用户id, 姓名, 学校等"""
