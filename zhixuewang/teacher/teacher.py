@@ -1,7 +1,8 @@
 import json
 import re
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
+from zhixuewang.exceptions import PageConnectionError
 from zhixuewang.models import (
     Account,
     BasicSubject,
@@ -17,9 +18,13 @@ from zhixuewang.models import (
 from zhixuewang.teacher.models import (
     AcademicInfo,
     AnswerRecordDetail,
+    HomeworkAcademicYear,
+    HomeworkClassReport,
     MarkingProgress,
+    NewHomework,
     OriginalPaper,
     PageExam,
+    PageHomework,
     Phase,
     PhaseSubjectGrade,
     Region,
@@ -29,6 +34,7 @@ from zhixuewang.teacher.models import (
     TeaPerson,
 )
 from zhixuewang.teacher.urls import Url
+from zhixuewang.tools.datetime_tool import cst2timestamp, iso2timestamp
 
 
 class TeacherAccount(Account, TeaPerson):
@@ -571,6 +577,180 @@ class TeacherAccount(Account, TeaPerson):
             page_size=page_size,
             all_pages=data["pageInfo"]["allPages"][-1],
             has_next_page=page_index < data["pageInfo"]["allPages"][-1],
+        )
+
+    def _request_gece(self, method: str, url: str, data: Optional[Dict[str, Any]] = None) -> Any:
+        """
+        请求 gece.zhixue.com 下的接口, token 放在 POST 请求体或 GET 参数中
+        Returns:
+            Any: 响应中的 result 字段
+        """
+        data = {**(data or {}), "token": self.get_token()}
+        r = self._session.request(
+            method,
+            url,
+            json=data if method == "POST" else None,
+            params=data if method == "GET" else None,
+            headers={"Accept-Language": "zh-CN"},
+        )
+        if r.status_code != 200 or r.json().get("errorCode") != 0:
+            raise PageConnectionError(f"请求 {url} 出错 \n {r.text}")
+        return r.json()["result"]
+
+    def get_homework_academic_years(self) -> ExtendedList[HomeworkAcademicYear]:
+        """获取新版作业报告可选的学年学期"""
+        data = self._request_gece("POST", Url.GET_HOMEWORK_ACADEMIC_YEAR_TERM_URL)
+        return ExtendedList([
+            HomeworkAcademicYear(
+                year=each["year"],
+                name=each.get("academicYearName", ""),
+                terms=[term["termName"] for term in each.get("terms") or []],
+            )
+            for each in data.get("academicYearTermList") or []
+        ])
+
+    def get_homework_grades(self, phase_code: str, subject_code: str) -> ExtendedList[Grade]:
+        """
+        获取新版作业报告可选的年级
+        Args:
+            phase_code (str): 学段代码
+            subject_code (str): 学科代码
+        """
+        data = self._request_gece("POST", Url.GET_HOMEWORK_GRADE_LIST_URL, {
+            "schoolId": self.school.id if self.school else "",
+            "phaseCode": phase_code,
+            "subjectCode": subject_code,
+        })
+        return ExtendedList([
+            Grade(code=each["code"], name=each["name"], phase_code=phase_code)
+            for each in data or []
+        ])
+
+    def get_homeworks(
+        self,
+        homework_title: str = "",
+        phase_code: str = "",
+        subject_code: str = "",
+        grade_code: str = "",
+        academic_year: Optional[int] = None,
+        term_name: str = "",
+        page_index: int = 1,
+        page_size: int = 10
+    ) -> PageHomework:
+        """
+        获取已经生成报告的新版作业列表，按报告生成时间倒序
+
+        TODO: 增加排序方式、作业类型、班级筛选的支持
+        Args:
+            homework_title (str): 作业标题
+            phase_code (str): 学段代码
+            subject_code (str): 学科代码
+            grade_code (str): 年级代码，为空表示全部年级
+            academic_year (int): 学年，如 2026
+            term_name (str): 学期名称，如 第一学期
+            page_index (int)
+            page_size (int)
+        Returns:
+            PageHomework: 作业列表和页数信息
+        """
+        school_id = self.school.id if self.school else ""
+        data = self._request_gece("POST", Url.GET_HOMEWORK_LIST_URL, {
+            "title": homework_title,
+            "schoolId": school_id,
+            "phaseCode": phase_code,
+            "subjectCode": subject_code,
+            "gradeCode": grade_code,
+            "academicYear": academic_year,
+            "termName": term_name,
+            "fromSource": "web",
+            "page": page_index, "size": page_size,
+            "orderBy": 2, "order": "desc",  # 2: 报告生成时间
+            "hwTag": "", "hwQueryType": None,
+            "screenClassType": ""
+        })
+        homeworks: ExtendedList[NewHomework] = ExtendedList()
+        for each in data.get("content") or []:
+            school = School(id=school_id)
+            grade = Grade(code=each.get("gradeCode", ""), name=each.get("gradeName", ""))
+            class_reports: ExtendedList[HomeworkClassReport] = ExtendedList()
+            for clazz in each.get("classReportList") or []:
+                try:
+                    score_rate: Optional[float] = float(clazz["scoreRate"])
+                except (TypeError, ValueError):  # 无数据时为 "--"
+                    score_rate = None
+                class_reports.append(
+                    HomeworkClassReport(
+                        clazz=StuClass(id=clazz["classId"], name=clazz["className"], grade=grade, school=school),
+                        total_num=int(clazz.get("totalStuNum") or 0),
+                        submit_num=int(clazz.get("submitNum") or 0),
+                        score_rate=score_rate,
+                        first_scan_time=iso2timestamp(clazz.get("firstScanTime")),
+                    )
+                )
+            homeworks.append(
+                NewHomework(
+                    id=each["homeworkId"],
+                    ist_id=each.get("istId") or "",
+                    title=each.get("title", ""),
+                    teacher_id=each.get("teacherId", ""),
+                    teacher_name=each.get("teacherName", ""),
+                    deploy_time=iso2timestamp(each.get("homeworkDeployTime")) or 0,
+                    create_time=iso2timestamp(each.get("reportCreateTime")) or 0,
+                    school=school,
+                    grade=grade,
+                    subject=BasicSubject(code=each.get("subjectCode", ""), name=each.get("subjectName", "")),
+                    clazzs=ExtendedList([report.clazz for report in class_reports]),
+                    class_reports=class_reports,
+                    status=(each.get("status") or {}).get("name", ""),
+                    hw_tag=each.get("hwInfoTagLevel") or "",
+                    hw_query_type=each.get("hwQueryType") or "",
+                    hw_type=each.get("hwType") or 0,
+                    score_type=each.get("scoreType") or 0,
+                    auth=each.get("auth") or 0,
+                    is_pyj=bool(each.get("isPyj")),
+                    is_aims=bool(each.get("isAims")),
+                    is_third_hw=bool(each.get("isThirdHw")),
+                )
+            )
+        total_count = data.get("totalElements", 0)
+        all_pages = (total_count + page_size - 1) // page_size  # XXX: 原始 totalPages 似乎不可靠
+        return PageHomework(
+            homeworks=homeworks,
+            page_index=page_index,
+            page_size=page_size,
+            total_count=total_count,
+            all_pages=all_pages,
+            has_next_page=page_index < all_pages,
+        )
+
+    def get_homework_detail(self, homework_id: str) -> NewHomework:
+        """
+        获取新版作业的基本信息，包括学校、年级、学科、布置班级等
+        接口不返回各班级统计、教师信息和 score_type 等报告参数
+
+        Args:
+            homework_id (str): 作业 id
+        Returns:
+            NewHomework
+        """
+        data = self._request_gece("POST", Url.GET_HOMEWORK_DETAIL_URL, {"homeworkId": homework_id})
+        school = School(id=data.get("schoolId", ""), name=data.get("schoolName", ""))
+        grade = Grade(code=data.get("gradeCode", ""), name=data.get("gradeName", ""))
+        return NewHomework(
+            id=homework_id,
+            title=data.get("homeworkName", ""),
+            # 时间是北京时间字符串，非 ISO
+            deploy_time=cst2timestamp(data.get("createTime")) or 0,
+            create_time=cst2timestamp(data.get("beginTime")) or 0,
+            school=school,
+            grade=grade,
+            subject=BasicSubject(name=data.get("subjectName", "")),
+            clazzs=ExtendedList([
+                StuClass(id=each["id"], name=each["name"], grade=grade, school=school)
+                for each in data.get("clazzList") or []
+            ]),
+            hw_tag=data.get("hwInfoTagLevel") or "",
+            hw_query_type=data.get("hwQueryType") or "",
         )
 
     def get_token(self) -> str:

@@ -5,8 +5,11 @@ from typing import List, Optional
 from zhixuewang.models import (
     BasicSubject,
     Exam,
+    ExtendedList,
     Grade,
     Person,
+    School,
+    StuClass,
 )
 
 ROLE_TABLE = {
@@ -18,6 +21,7 @@ ROLE_TABLE = {
     "viceHeadteacher": "副班主任",
     "viceHeadmaster": "副校长",
     "schoolAdministrator": "校管理员",
+    "subSchoolAdministrator": "子管理员"  # XXX: 存疑
 }
 class TeacherRole(Enum):
     TEACHER = "老师"
@@ -28,6 +32,7 @@ class TeacherRole(Enum):
     SCHOOL_ADMINISTRATOR = "校管理员"
     GRADE_DIRECTER = "年级组长"
     SUBJECT_LEADER = "备课组长"
+    SUB_SCHOOL_ADMINISTRATOR = "子管理员"
 
     def __str__(self):
         return self._value_
@@ -111,6 +116,80 @@ class AcademicInfo:
     begin_time: int
     end_time: int
     school_id: str
+
+
+@dataclass
+class HomeworkAcademicYear:
+    """新版作业报告的学年学期筛选项"""
+    year: int = 0
+    """学年, 如 2026"""
+    name: str = ""
+    """学年名称"""
+    terms: List[str] = field(default_factory=list)
+    """学期名称列表, 如 第一学期"""
+
+
+@dataclass
+class HomeworkClassReport:
+    """新版作业报告中单个班级的统计"""
+    clazz: StuClass = field(default_factory=StuClass)
+    total_num: int = 0
+    """班级总人数"""
+    submit_num: int = 0
+    """提交人数"""
+    score_rate: Optional[float] = None
+    """得分率(scoreType 不同时为正确率), 单位%, 无数据时为None"""
+    first_scan_time: Optional[int] = None
+    """首次扫描时间(毫秒时间戳), 无提交时为None"""
+
+
+@dataclass(eq=False)
+class NewHomework:
+    """新版作业(作业报告), 与学生端的 Homework 无关"""
+    id: str = ""
+    ist_id: str = ""  # TODO: 暂时意义不明
+    title: str = ""
+    teacher_id: str = ""
+    teacher_name: str = ""
+    deploy_time: int = 0
+    """作业布置时间(毫秒时间戳)"""
+    create_time: int = 0
+    """报告生成时间(毫秒时间戳)"""
+    school: School = field(default_factory=School, repr=False)
+    grade: Grade = field(default_factory=Grade, repr=False)
+    subject: BasicSubject = field(default_factory=BasicSubject, repr=False)
+    clazzs: ExtendedList[StuClass] = field(default_factory=ExtendedList, repr=False)  # type: ignore
+    class_reports: ExtendedList[HomeworkClassReport] = field(default_factory=ExtendedList, repr=False)  # type: ignore
+    """各班级统计, 仅作业列表接口返回"""
+    status: str = ""
+    """报告状态, 如 已完成"""
+    hw_tag: str = ""
+    """作业类型标签代码, eg: 38 数智作业, 33 批阅机"""
+    hw_query_type: str = ""
+    """作业查询类型代码, eg: 102"""
+    hw_type: int = field(default=0, repr=False)
+    score_type: int = field(default=0, repr=False)
+    """1: 得分率"""
+    auth: int = field(default=0, repr=False)
+    is_pyj: bool = field(default=False, repr=False)
+    is_aims: bool = field(default=False, repr=False)
+    is_third_hw: bool = field(default=False, repr=False)
+
+    def __bool__(self):
+        return bool(self.id)
+
+    def __eq__(self, other):
+        return type(other) is type(self) and other.id == self.id
+
+
+@dataclass
+class PageHomework:
+    homeworks: ExtendedList[NewHomework]
+    page_index: int
+    page_size: int
+    total_count: int
+    all_pages: int
+    has_next_page: bool
 
 
 @dataclass
